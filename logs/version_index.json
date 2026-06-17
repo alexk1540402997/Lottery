@@ -1,0 +1,34 @@
+{
+  "param_versions": [
+    {
+      "version": 1,
+      "filename": "model_params_v001_20260617_233210.json",
+      "created": "2026-06-17 23:32:10",
+      "description": "回测优化结果 (合并平均命中1.360)",
+      "backtest_score": 1.36
+    },
+    {
+      "version": 2,
+      "filename": "model_params_v002_20260618_002048.json",
+      "created": "2026-06-18 00:20:48",
+      "description": "回测优化 (平均命中1.200, 0.0%命中5+)",
+      "backtest_score": 1.2
+    }
+  ],
+  "weight_versions": [
+    {
+      "version": 1,
+      "filename": "merge_weights_v001_20260617_233210.json",
+      "created": "2026-06-17 23:32:10",
+      "description": "回测优化权重 (合并平均命中1.360)",
+      "backtest_score": 1.36
+    },
+    {
+      "version": 2,
+      "filename": "merge_weights_v002_20260618_002048.json",
+      "created": "2026-06-18 00:20:48",
+      "description": "回测优化权重 (平均命中1.200)",
+      "backtest_score": 1.2
+    }
+  ]
+}

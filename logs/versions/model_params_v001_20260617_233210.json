@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "version": 1,
+    "created": "2026-06-17 23:32:10",
+    "description": "回测优化结果 (合并平均命中1.360)",
+    "lottery_type": "ssq",
+    "backtest_score": 1.36
+  }
+}
