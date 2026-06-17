@@ -348,46 +348,63 @@ class LotterySystemGUI:
                                        fg=self.colors['text'])
         settings_frame.pack(fill=tk.X, padx=15, pady=(15, 5))
 
+        # Row 1: 测试期数 + 线程数
         row1 = tk.Frame(settings_frame, bg=self.colors['bg'])
         row1.pack(fill=tk.X, padx=10, pady=8)
 
-        tk.Label(row1, text="测试期数:", font=("Microsoft YaHei", 10),
+        tk.Label(row1, text="测试最新N期:", font=("Microsoft YaHei", 10),
                 bg=self.colors['bg']).pack(side=tk.LEFT)
-        self.backtest_periods_var = tk.StringVar(value="50")
+        self.backtest_periods_var = tk.StringVar(value="10")
         periods_combo = ttk.Combobox(row1, textvariable=self.backtest_periods_var,
                                      values=["1", "5", "10", "30", "50", "100", "200"],
                                      width=8, state="readonly", font=("Microsoft YaHei", 10))
         periods_combo.pack(side=tk.LEFT, padx=(5, 30))
 
-        tk.Label(row1, text="搜索模式:", font=("Microsoft YaHei", 10),
+        tk.Label(row1, text="并行线程:", font=("Microsoft YaHei", 10),
                 bg=self.colors['bg']).pack(side=tk.LEFT)
-        self.search_mode_var = tk.StringVar(value="baseline")
-        for text, val in [("基准(默认参数)", "baseline"),
-                          ("快速搜索", "fast"),
-                          ("网格搜索", "grid")]:
-            tk.Radiobutton(row1, text=text, variable=self.search_mode_var,
-                          value=val, font=("Microsoft YaHei", 9),
-                          bg=self.colors['bg'],
-                          activebackground=self.colors['bg']).pack(side=tk.LEFT, padx=8)
+        self.num_workers_var = tk.StringVar(value="2")
+        workers_combo = ttk.Combobox(row1, textvariable=self.num_workers_var,
+                                     values=["1", "2", "4", "6", "8"],
+                                     width=5, state="readonly", font=("Microsoft YaHei", 10))
+        workers_combo.pack(side=tk.LEFT, padx=5)
 
+        # Row 2: 最大搜索时间（唯一的停止条件）
         row2 = tk.Frame(settings_frame, bg=self.colors['bg'])
         row2.pack(fill=tk.X, padx=10, pady=5)
 
-        tk.Label(row2, text="最大搜索时间(分钟):", font=("Microsoft YaHei", 10),
-                bg=self.colors['bg']).pack(side=tk.LEFT)
+        tk.Label(row2, text="最大搜索时间(分钟):", font=("Microsoft YaHei", 10, "bold"),
+                bg=self.colors['bg'], fg=self.colors['danger']).pack(side=tk.LEFT)
         self.time_limit_var = tk.StringVar(value="0")
         time_combo = ttk.Combobox(row2, textvariable=self.time_limit_var,
-                                  values=["0(不限制)", "1", "3", "5", "10", "30", "60"],
-                                  width=10, state="readonly", font=("Microsoft YaHei", 10))
+                                  values=["0(不限制)", "1", "3", "5", "10", "30",
+                                          "60", "120", "240"],
+                                  width=12, state="readonly", font=("Microsoft YaHei", 10))
         time_combo.pack(side=tk.LEFT, padx=5)
 
-        tk.Label(row2, text="最大参数组合:", font=("Microsoft YaHei", 10),
-                bg=self.colors['bg']).pack(side=tk.LEFT, padx=(30, 5))
-        self.max_combos_var = tk.StringVar(value="100")
-        combos_combo = ttk.Combobox(row2, textvariable=self.max_combos_var,
-                                    values=["20", "50", "100", "200", "500"],
-                                    width=8, state="readonly", font=("Microsoft YaHei", 10))
-        combos_combo.pack(side=tk.LEFT, padx=5)
+        tk.Label(row2, text="← 时间到即停止（无参数组合数量上限）",
+                font=("Microsoft YaHei", 8), bg=self.colors['bg'],
+                fg=self.colors['text_light']).pack(side=tk.LEFT, padx=10)
+
+        # 说明区
+        info_frame = tk.Frame(settings_frame, bg="#e8f5e9", bd=1, relief=tk.SOLID)
+        info_frame.pack(fill=tk.X, padx=10, pady=(8, 5))
+
+        info_text = (
+            "说明：回测将自动搜索最优的模型参数和合并权重组合。\n"
+            "对最新N期的每一期，用历史数据预测 → 加权合并 → 与真实开奖对比命中数。\n"
+            "系统会持续尝试不同的参数/权重组合，直到搜索时间耗尽，选出平均命中率最高的组合。\n"
+            "所有已尝试的组合会自动记录，下次回测自动跳过，逐步收敛到最优解。"
+        )
+        tk.Label(info_frame, text=info_text, font=("Microsoft YaHei", 8),
+                bg="#e8f5e9", fg="#2e7d32", justify=tk.LEFT,
+                wraplength=700).pack(padx=10, pady=8)
+
+        # 进度显示
+        self.backtest_elapsed_label = tk.Label(settings_frame, text="",
+                                              font=("Microsoft YaHei", 9),
+                                              bg=self.colors['bg'],
+                                              fg=self.colors['primary'])
+        self.backtest_elapsed_label.pack(pady=2)
 
         # 结果区
         result_frame = tk.LabelFrame(self.tab_backtest, text="回测结果",
@@ -744,9 +761,8 @@ class LotterySystemGUI:
             return
 
         test_periods = int(self.backtest_periods_var.get())
-        search_mode = self.search_mode_var.get()
         time_limit_str = self.time_limit_var.get()
-        max_combos = int(self.max_combos_var.get())
+        num_workers = int(self.num_workers_var.get())
 
         # 解析时间限制
         if '不' in time_limit_str or time_limit_str == '0':
@@ -754,20 +770,30 @@ class LotterySystemGUI:
         else:
             max_search_time = int(time_limit_str) * 60
 
-        use_fast = (search_mode == 'fast')
-        if search_mode == 'baseline':
-            max_combos = 1
-
         self.running = True
         self.btn_backtest.config(state=tk.DISABLED)
         self.btn_predict.config(state=tk.DISABLED)
         self.btn_stop.config(state=tk.NORMAL)
-        self._update_status("回测中...")
-        self.progress_bar.start()
+        self._update_status(f"回测中... (测试最新{test_periods}期, "
+                           f"{num_workers}线程, "
+                           f"{'不限时' if max_search_time==0 else f'{max_search_time//60}分钟'})")
+
+        self.progress_bar.start()  # 不确定模式（无法预知总组合数）
 
         self.backtest_result_text.delete(1.0, tk.END)
-        self.backtest_result_text.insert(tk.END, "回测初始化中，请稍候...\n")
+        self.backtest_result_text.insert(tk.END,
+            "回测初始化中...\n"
+            f"目标: 测试最新{test_periods}期\n"
+            f"搜索: 模型参数 + 合并权重\n"
+            f"停止: {'不限' if max_search_time==0 else f'{max_search_time//60}分钟后自动停止'}\n"
+            f"线程: {num_workers}个并行\n"
+            f"已记录{len(self.backtest_engine.tried_combos) if self.backtest_engine else 0}组已尝试组合\n\n"
+            "等待首个结果中...\n")
         self.notebook.select(1)
+
+        # 启动计时器更新耗时显示
+        self._backtest_start_clock = time.time()
+        self._update_backtest_clock()
 
         # 创建引擎
         self.backtest_engine = BacktestEngine()
@@ -777,14 +803,15 @@ class LotterySystemGUI:
             self._on_operation_error(msg)
             return
 
-        self.backtest_engine.set_test_config(
+        self.backtest_engine.set_config(
             test_periods=test_periods,
             max_search_time=max_search_time,
+            num_workers=num_workers,
         )
 
         def on_progress(pct, msg):
             self.root.after(0, lambda: self._update_status(
-                f"回测进度: {pct:.0f}% - {msg}"))
+                f"回测中: {msg}"))
 
         def on_log(msg):
             self._log(msg)
@@ -794,15 +821,18 @@ class LotterySystemGUI:
 
         self.backtest_runner = BacktestRunner(self.backtest_engine)
         self.backtest_runner.run_async(
-            search_mode=search_mode,
-            max_combinations=max_combos,
-            test_periods=test_periods,
-            use_fast_space=use_fast,
-            max_search_time=max_search_time,
             on_progress=on_progress,
             on_log=on_log,
             on_done=on_done,
         )
+
+    def _update_backtest_clock(self):
+        """更新回测耗时显示"""
+        if self.running and hasattr(self, '_backtest_start_clock'):
+            elapsed = time.time() - self._backtest_start_clock
+            self.backtest_elapsed_label.config(
+                text=f"已运行: {elapsed:.0f}秒 ({elapsed/60:.1f}分钟)")
+            self.root.after(1000, self._update_backtest_clock)
 
     def _on_backtest_done(self, result: Dict):
         """回测完成"""
@@ -813,30 +843,110 @@ class LotterySystemGUI:
         self.btn_stop.config(state=tk.DISABLED)
 
         self.backtest_result_text.delete(1.0, tk.END)
+        text = self.backtest_result_text
 
         if not result.get('success'):
             error = result.get('error', '未知错误')
-            self._update_status(f"回测失败: {error}")
-            self._log(f"✗ 回测失败: {error}", "error")
-            self.backtest_result_text.insert(tk.END, f"回测失败:\n{error}\n")
+            total_time = result.get('total_time', 0)
+            self._update_status(f"回测结束: {error}")
+            self._log(f"回测结束: {error}", "warning")
+            text.insert(tk.END,
+                f"╔══════════════════════════════════╗\n"
+                f"║     回测结束（未找到结果）      ║\n"
+                f"╚══════════════════════════════════╝\n\n"
+                f"原因: {error}\n"
+                f"耗时: {total_time:.0f}秒\n\n"
+                f"建议: 增加搜索时间或在GUI中加载更多期数据\n")
+            self.backtest_elapsed_label.config(text="")
             return
 
-        # 显示结果
-        text = self.backtest_result_text
-        text.insert(tk.END, "╔══════════════════════════════════╗\n")
-        text.insert(tk.END, "║     回 测 结 果 报 告           ║\n")
-        text.insert(tk.END, "╚══════════════════════════════════╝\n\n")
+        # ============ 显示结果 ============
+        best = result['best_combo']
 
-        summary = result.get('best_summary', {})
+        text.insert(tk.END,
+            "╔══════════════════════════════════╗\n"
+            "║     回 测 结 果 报 告           ║\n"
+            "╚══════════════════════════════════╝\n\n")
+
         text.insert(tk.END, f"彩票类型: {self.lottery_type}\n")
-        text.insert(tk.END, f"测试期数: {result['test_periods']}\n")
-        text.insert(tk.END, f"尝试参数组合: {result['total_combinations_tried']}/{result['total_combinations']}\n")
-        text.insert(tk.END, f"总耗时: {result['total_time']:.1f}秒 "
+        text.insert(tk.END, f"测试最新N期: {self.backtest_periods_var.get()}\n")
+        text.insert(tk.END, f"总尝试组合: {result['total_combos_tried']}组 "
+                           f"(跳过{result['total_combos_skipped']}组已试)\n")
+        text.insert(tk.END, f"总耗时: {result['total_time']:.0f}秒 "
                            f"({result['total_time']/60:.1f}分钟)\n\n")
 
         text.insert(tk.END, "━━━ 最佳结果 ━━━\n")
-        text.insert(tk.END, f"合并平均命中: {result['best_merged_avg_hits']:.3f}\n")
-        text.insert(tk.END, f"合并最高命中: {result['best_merged_max_hits']}\n")
+        text.insert(tk.END, f"平均总命中: {best['avg_total_hits']:.4f}\n")
+        text.insert(tk.END, f"最高总命中: {best['max_total_hits']}\n")
+        text.insert(tk.END, f"命中5+的期占比: {best['hit_rate_5plus']:.1%}\n")
+        text.insert(tk.END, f"有效评估期数: {best.get('num_periods_evaluated', 'N/A')}\n\n")
+
+        # 每期详细结果
+        text.insert(tk.END, "━━━ 最新各期预测 vs 实际 ━━━\n")
+        text.insert(tk.END, f"{'期号':<8} {'预测号码':<38} {'实际号码':<38} {'命中':>4}\n")
+        text.insert(tk.END, "-" * 90 + "\n")
+
+        for pr in best.get('period_results', []):
+            if self.lottery_type == 'ssq':
+                pred_str = (f"红:{' '.join(f'{n:02d}' for n in pr['merged_main'])} "
+                           f"蓝:{' '.join(f'{n:02d}' for n in pr['merged_aux'])}")
+                actual_str = (f"红:{' '.join(f'{n:02d}' for n in pr['actual_main'])} "
+                             f"蓝:{' '.join(f'{n:02d}' for n in pr['actual_aux'])}")
+            else:
+                pred_str = (f"前:{' '.join(f'{n:02d}' for n in pr['merged_main'])} "
+                           f"后:{' '.join(f'{n:02d}' for n in pr['merged_aux'])}")
+                actual_str = (f"前:{' '.join(f'{n:02d}' for n in pr['actual_main'])} "
+                             f"后:{' '.join(f'{n:02d}' for n in pr['actual_aux'])}")
+
+            text.insert(tk.END,
+                f"第{pr['period_num']:<5}期 "
+                f"{pred_str:<38} "
+                f"{actual_str:<38} "
+                f"{pr['total_hits']:>2}中 "
+                f"(主{pr['main_hits']}+辅{pr['aux_hits']})\n")
+
+        # 最优权重
+        text.insert(tk.END, "\n━━━ 最优方法权重 ━━━\n")
+        mw = best['weights'].get('method_weights', {})
+        for mk, w in sorted(mw.items(), key=lambda x: x[1], reverse=True):
+            mname = METHOD_NAMES_NEW.get(mk, mk)
+            text.insert(tk.END, f"  {mname}: {w:.4f}\n")
+
+        text.insert(tk.END, "\n━━━ 最优颗粒度权重 ━━━\n")
+        gw = best['weights'].get('granularity_weights', {})
+        for gn, w in sorted(gw.items(), key=lambda x: x[1], reverse=True):
+            text.insert(tk.END, f"  {gn}: {w:.4f}\n")
+
+        # 保存版本
+        self.config_mgr.save_params_version(
+            best.get('params', {}),
+            description=f"回测优化 (平均命中{best['avg_total_hits']:.3f}, "
+                       f"{best['hit_rate_5plus']:.1%}命中5+)",
+            lottery_type=self.lottery_type,
+            backtest_score=best['avg_total_hits'],
+        )
+        self.config_mgr.save_weights_version(
+            mw, gw,
+            description=f"回测优化权重 (平均命中{best['avg_total_hits']:.3f})",
+            backtest_score=best['avg_total_hits'],
+        )
+
+        # 生成Excel报告
+        if self.backtest_engine:
+            report_path = self.backtest_engine.generate_report()
+            if report_path:
+                text.insert(tk.END, f"\n📊 详细报告: {report_path}\n")
+
+        self._update_status(
+            f"回测完成! 最佳平均命中{best['avg_total_hits']:.3f}, "
+            f"最高{best['max_total_hits']}中, "
+            f"耗时{result['total_time']:.0f}秒")
+        self._log(f"回测完成! 最佳={best['avg_total_hits']:.3f}, "
+                  f"最高={best['max_total_hits']}, "
+                  f"尝试{result['total_combos_tried']}组", "success")
+
+        self.backtest_elapsed_label.config(text="")
+        self._refresh_optimize_display()
         text.insert(tk.END, f"最佳单期: 第{result.get('best_period', 'N/A')}期\n")
         text.insert(tk.END, f"\n各方法平均表现:\n")
         text.insert(tk.END, f"  平均主球命中: {summary.get('avg_main_hits', 'N/A')}\n")
