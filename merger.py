@@ -32,16 +32,21 @@ warnings.filterwarnings('ignore')
 # 索引: granularity_index (0=50, 1=100, 2=500, 3=1000, 4=all)
 #       method_index (0..7)
 DEFAULT_WEIGHT_MATRIX = {
-    # 方法预设权重
+    # 方法预设权重（13种方法，默认等权）
     'method_base_weights': {
-        'method_1': 1.2,  # 统计概率
-        'method_2': 1.1,  # 时间序列
+        'method_1': 1.0,  # 统计概率
+        'method_2': 1.0,  # 时间序列
         'method_3': 1.0,  # 模式识别
-        'method_4': 1.3,  # 机器学习
-        'method_5': 1.1,  # 马尔可夫
+        'method_4': 1.0,  # LightGBM
+        'method_5': 1.0,  # 马尔可夫
         'method_6': 1.0,  # 蒙特卡罗
         'method_7': 1.0,  # 聚类分析
-        'method_8': 0.9,  # N-gram
+        'method_8': 1.0,  # N-gram
+        'method_9': 1.0,  # XGBoost
+        'method_10': 1.0,  # 贝叶斯推断
+        'method_11': 1.0,  # 卡尔曼滤波
+        'method_12': 1.0,  # 泊松回归
+        'method_13': 1.0,  # 共生矩阵
     },
     # 颗粒度预设权重
     'granularity_base_weights': {
@@ -61,11 +66,16 @@ METHOD_NAMES = {
     'method_1': '统计概率分析',
     'method_2': '时间序列分析',
     'method_3': '模式识别分析',
-    'method_4': '机器学习分析',
+    'method_4': 'LightGBM分析',
     'method_5': '马尔可夫分析',
     'method_6': '蒙特卡罗模拟',
     'method_7': '聚类分析',
     'method_8': 'N-gram分析',
+    'method_9': 'XGBoost分析',
+    'method_10': '贝叶斯推断',
+    'method_11': '卡尔曼滤波',
+    'method_12': '泊松回归',
+    'method_13': '共生矩阵分析',
 }
 
 

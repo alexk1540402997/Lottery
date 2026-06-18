@@ -63,9 +63,10 @@ PARAM_SEARCH_SPACE = {
         'consecutive_threshold': [0.25, 0.30, 0.35, 0.40, 0.45],
     },
     'ml': {
-        'n_estimators':      [50, 80, 100, 150, 200],
-        'max_depth':         [6, 8, 10, 12, 15],
-        'min_samples_split': [3, 5, 8, 10],
+        'n_estimators':      [30, 50, 80, 100],
+        'max_depth':         [4, 6, 8, 10],
+        'num_leaves':        [10, 15, 20, 31],
+        'learning_rate':     [0.05, 0.10, 0.15],
     },
     'markov': {
         'transition_weight': [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80],
@@ -84,6 +85,33 @@ PARAM_SEARCH_SPACE = {
         'similarity_threshold': [0.15, 0.20, 0.25, 0.30, 0.35],
         'adjacent_weight':      [0.50, 0.60, 0.70, 0.75, 0.85],
         'top_k_similar':        [5, 10, 15, 20, 25],
+    },
+    'xgboost': {
+        'n_estimators':      [20, 40, 60, 80],
+        'max_depth':         [3, 5, 7, 9],
+        'learning_rate':     [0.05, 0.10, 0.15, 0.20],
+        'subsample':         [0.7, 0.8, 0.9],
+        'reg_alpha':         [0.5, 1.0, 2.0],
+    },
+    'bayesian': {
+        'prior_strength':    [1.0, 2.0, 3.0, 5.0],
+        'freq_weight':       [0.40, 0.50, 0.55, 0.60, 0.65],
+        'recent_weight':     [0.15, 0.20, 0.25, 0.30, 0.35],
+        'missing_weight':    [0.10, 0.15, 0.20, 0.25],
+    },
+    'kalman': {
+        'process_noise':     [0.005, 0.01, 0.02, 0.05],
+        'measurement_noise': [0.05, 0.10, 0.20, 0.30],
+        'trend_weight':      [0.30, 0.40, 0.50, 0.60],
+    },
+    'poisson': {
+        'alpha':             [0.1, 0.5, 1.0, 2.0],
+        'freq_weight':       [0.40, 0.50, 0.60, 0.70],
+    },
+    'cooccurrence': {
+        'cooccur_threshold': [0.10, 0.15, 0.20, 0.25, 0.30],
+        'mutual_weight':     [0.40, 0.50, 0.55, 0.60, 0.65],
+        'window_size':       [50, 100, 200, 500],
     },
 }
 
@@ -290,6 +318,10 @@ class BacktestEngine:
         period_results = []
         actual_test_count = min(self.test_periods, self.total_periods - 10)
 
+        # 早停参数
+        early_check_periods = min(3, actual_test_count)  # 前N期检查
+        early_stop_min_hits = 1.5  # 前N期平均低于此值则跳过
+
         for period_idx in range(actual_test_count):
             # 检查时间（细粒度检查）
             if self.max_search_time > 0:
@@ -299,6 +331,14 @@ class BacktestEngine:
 
             if not self.running:
                 break
+
+            # 早停检查：前N期表现太差则跳过（仅在测试期数较多时启用）
+            if (period_idx >= early_check_periods and
+                    actual_test_count >= 10 and period_results):
+                recent_hits = [r['total_hits'] for r in period_results[:early_check_periods]]
+                recent_avg = sum(recent_hits) / len(recent_hits)
+                if recent_avg < early_stop_min_hits:
+                    break
 
             # 训练数据：period_idx之后的历史（该期之前的数据）
             # 限制最大训练期数加速（500期足够捕捉趋势）
@@ -454,8 +494,8 @@ class BacktestEngine:
         batch_submitted = 0
         active_futures = {}
 
-        # 限制同时活跃的任务数 = min(num_workers, 4)
-        max_concurrent = min(self.num_workers, 4)
+        # 限制同时活跃的任务数
+        max_concurrent = max(1, min(self.num_workers, 8))
 
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
 
@@ -478,8 +518,8 @@ class BacktestEngine:
                             skipped += 1
                         combo_pool.append((params, weights, h, len(combo_pool)))
 
-                # 提交新任务（一次最多2个活跃）
-                while (len(active_futures) < 2 and
+                # 提交新任务（使用实际的max_concurrent）
+                while (len(active_futures) < max_concurrent and
                        batch_submitted < len(combo_pool)):
                     params, weights, h, cid = combo_pool[batch_submitted]
                     future = executor.submit(self.evaluate_combo, params, weights,
