@@ -137,8 +137,9 @@ class BacktestEngine:
 
         # 回测配置
         self.test_periods = 50         # 测试最新N期
-        self.granularities = [50, 100, 500]  # 回测用3种颗粒度加速
-        self.gran_names = ['50期', '100期', '500期']
+        self.ALL_GRANULARITIES = [50, 100, 500, 1000, 0]  # 所有可用颗粒度
+        self.granularities = [100, 500]  # 回测颗粒度（智能调整）
+        self.gran_names = ['100期', '500期']
         self.max_search_time = 0       # 最大搜索时间（秒），0=不限制
         self.num_workers = 4           # 并行线程数
         self.max_train_periods = 500   # 限制训练数据最多500期（加速ML）
@@ -187,8 +188,17 @@ class BacktestEngine:
         self.test_periods = test_periods
         if granularities is not None:
             self.granularities = granularities
-            self.gran_names = [
-                f'{g}期' if g > 0 else '全部期' for g in granularities]
+        else:
+            # 智能颗粒度：测试期少→少颗粒度（加速），测试期多→多颗粒度
+            if test_periods <= 2:
+                self.granularities = [500]  # 1-2期测试只需1种颗粒度
+                self.gran_names = ['500期']
+            elif test_periods <= 10:
+                self.granularities = [100, 500]  # 2种颗粒度
+                self.gran_names = ['100期', '500期']
+            else:
+                self.granularities = [50, 100, 500]  # 3种颗粒度
+                self.gran_names = ['50期', '100期', '500期']
         self.max_search_time = max_search_time
         self.num_workers = max(1, num_workers)
         self.max_train_periods = max_train_periods

@@ -66,6 +66,7 @@ class LotterySystemGUI:
         self.lottery_type = 'ssq'
         self.predictor = None
         self.all_predictions = {}  # 各颗粒度的预测结果
+        self.best_backtest_combo = None  # 最新回测的最优(参数+权重)
         self.backtest_engine = None
         self.backtest_runner = None
         self.config_mgr = ConfigManager()
@@ -467,6 +468,12 @@ class LotterySystemGUI:
                  font=("Microsoft YaHei", 10), relief=tk.FLAT,
                  padx=10, pady=4, cursor="hand2").pack(side=tk.LEFT, padx=5)
 
+        tk.Button(btn_frame, text="★ 应用最优组合", command=self._apply_best_combo,
+                 font=("Microsoft YaHei", 10, "bold"),
+                 bg=self.colors['primary'], fg="white",
+                 relief=tk.FLAT, padx=12, pady=4,
+                 cursor="hand2").pack(side=tk.LEFT, padx=10)
+
         # 方法权重调整区
         weight_frame = tk.LabelFrame(self.tab_optimize, text="合并权重调整（手动微调）",
                                       font=("Microsoft YaHei", 11),
@@ -862,6 +869,12 @@ class LotterySystemGUI:
 
         # ============ 显示结果 ============
         best = result['best_combo']
+        # 保存最优组合供"应用最优组合"按钮使用
+        self.best_backtest_combo = {
+            'params': best.get('params', {}),
+            'weights': best.get('weights', {}),
+            'avg_hits': best.get('avg_total_hits', 0),
+        }
 
         text.insert(tk.END,
             "╔══════════════════════════════════╗\n"
@@ -1097,6 +1110,61 @@ class LotterySystemGUI:
             messagebox.showinfo("成功", f"配置已导出到:\n{path}")
         except Exception as e:
             self._log(f"✗ 导出失败: {e}", "error")
+
+    def _apply_best_combo(self):
+        """应用回测最优组合：将最佳(参数+权重)写入当前配置"""
+        if not self.best_backtest_combo:
+            messagebox.showwarning("警告", "没有可用的回测结果。\n请先运行回测。")
+            return
+
+        combo = self.best_backtest_combo
+        avg_hits = combo.get('avg_hits', 0)
+        params = combo.get('params', {})
+        weights = combo.get('weights', {})
+
+        if not params or not weights:
+            messagebox.showerror("错误", "最优组合数据不完整")
+            return
+
+        # 确认
+        confirm = messagebox.askyesno(
+            "确认应用",
+            f"将回测最优组合(平均命中{avg_hits:.3f})应用到当前配置？\n\n"
+            f"这将覆盖:\n"
+            f"  - 所有13种方法的模型参数\n"
+            f"  - 方法权重和颗粒度权重\n\n"
+            f"应用后，预测和后续回测都将使用此组合。"
+        )
+        if not confirm:
+            return
+
+        try:
+            # 保存模型参数
+            self.config_mgr.save_params_version(
+                params,
+                description=f"应用回测最优组合 (平均命中{avg_hits:.3f})",
+                lottery_type=self.lottery_type,
+                backtest_score=avg_hits,
+            )
+            # 保存权重
+            mw = weights.get('method_weights', {})
+            gw = weights.get('granularity_weights', {})
+            self.config_mgr.save_weights_version(
+                mw, gw,
+                description=f"应用回测最优权重 (平均命中{avg_hits:.3f})",
+                backtest_score=avg_hits,
+            )
+            self._log(f"✓ 已应用回测最优组合! 平均命中 {avg_hits:.3f}", "success")
+            self._refresh_optimize_display()
+            messagebox.showinfo("成功",
+                f"最优组合已应用!\n\n"
+                f"平均命中: {avg_hits:.3f}\n"
+                f"参数方法数: {len(params)}\n"
+                f"权重方法数: {len(mw)}\n\n"
+                f"优化Tab可查看详情。")
+        except Exception as e:
+            self._log(f"✗ 应用最优组合失败: {e}", "error")
+            messagebox.showerror("失败", f"应用失败: {e}")
 
     def _apply_weights(self):
         """应用手动调整的权重"""
