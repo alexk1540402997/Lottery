@@ -634,7 +634,26 @@ class BacktestEngine:
                 ["最优颗粒度权重", json.dumps(
                     bc['weights'].get('granularity_weights', {}),
                     ensure_ascii=False, indent=2)],
+                ["", ""],
+                ["--- 最优模型参数 ---", ""],
             ]
+            # 展开模型参数（按方法+参数名显示）
+            params = bc.get('params', {})
+            param_method_names = {
+                'statistical': '方法1: 统计概率分析',
+                'timeseries': '方法2: 时间序列分析',
+                'pattern': '方法3: 模式识别分析',
+                'ml': '方法4: 机器学习分析',
+                'markov': '方法5: 马尔可夫分析',
+                'montecarlo': '方法6: 蒙特卡罗模拟',
+                'clustering': '方法7: 聚类分析',
+                'ngram': '方法8: N-gram分析',
+            }
+            for method_key, method_label in param_method_names.items():
+                method_params = params.get(method_key, {})
+                if method_params:
+                    summary.append([method_label, json.dumps(
+                        method_params, ensure_ascii=False, indent=2)])
             pd.DataFrame(summary, columns=["项目", "值"]).to_excel(
                 writer, sheet_name="报告摘要", index=False)
 

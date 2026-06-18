@@ -917,6 +917,27 @@ class LotterySystemGUI:
         for gn, w in sorted(gw.items(), key=lambda x: x[1], reverse=True):
             text.insert(tk.END, f"  {gn}: {w:.4f}\n")
 
+        # 最优模型参数
+        params = best.get('params', {})
+        if params:
+            text.insert(tk.END, "\n━━━ 最优模型参数 ━━━\n")
+            param_method_names = {
+                'statistical': '方法1: 统计概率分析',
+                'timeseries': '方法2: 时间序列分析',
+                'pattern': '方法3: 模式识别分析',
+                'ml': '方法4: 机器学习分析',
+                'markov': '方法5: 马尔可夫分析',
+                'montecarlo': '方法6: 蒙特卡罗模拟',
+                'clustering': '方法7: 聚类分析',
+                'ngram': '方法8: N-gram分析',
+            }
+            for method_key, method_label in param_method_names.items():
+                method_params = params.get(method_key, {})
+                if method_params:
+                    text.insert(tk.END, f"  [{method_label}]\n")
+                    for pname, pval in sorted(method_params.items()):
+                        text.insert(tk.END, f"    {pname}: {pval}\n")
+
         # 保存版本
         self.config_mgr.save_params_version(
             best.get('params', {}),
@@ -946,56 +967,6 @@ class LotterySystemGUI:
                   f"尝试{result['total_combos_tried']}组", "success")
 
         self.backtest_elapsed_label.config(text="")
-        self._refresh_optimize_display()
-        text.insert(tk.END, f"最佳单期: 第{result.get('best_period', 'N/A')}期\n")
-        text.insert(tk.END, f"\n各方法平均表现:\n")
-        text.insert(tk.END, f"  平均主球命中: {summary.get('avg_main_hits', 'N/A')}\n")
-        text.insert(tk.END, f"  平均辅助球命中: {summary.get('avg_aux_hits', 'N/A')}\n")
-        text.insert(tk.END, f"  平均总命中: {summary.get('avg_total_hits', 'N/A')}\n")
-        text.insert(tk.END, f"  最高总命中: {summary.get('max_total_hits', 'N/A')}\n\n")
-
-        # 最优权重
-        opt_weights = result.get('optimal_weights', {})
-        if opt_weights.get('method_weights'):
-            text.insert(tk.END, "━━━ 最优方法权重 ━━━\n")
-            for mk, w in sorted(opt_weights['method_weights'].items(),
-                               key=lambda x: x[1], reverse=True):
-                mname = METHOD_NAMES_NEW.get(mk, mk)
-                text.insert(tk.END, f"  {mname}: {w:.4f}\n")
-
-        if opt_weights.get('granularity_weights'):
-            text.insert(tk.END, "\n━━━ 最优颗粒度权重 ━━━\n")
-            for gn, w in sorted(opt_weights['granularity_weights'].items(),
-                               key=lambda x: x[1], reverse=True):
-                text.insert(tk.END, f"  {gn}: {w:.4f}\n")
-
-        # 保存版本
-        self.config_mgr.save_params_version(
-            result.get('best_params', {}),
-            description=f"回测优化结果 (合并平均命中{result['best_merged_avg_hits']:.3f})",
-            lottery_type=self.lottery_type,
-            backtest_score=result['best_merged_avg_hits'],
-        )
-        self.config_mgr.save_weights_version(
-            opt_weights.get('method_weights', {}),
-            opt_weights.get('granularity_weights', {}),
-            description=f"回测优化权重 (合并平均命中{result['best_merged_avg_hits']:.3f})",
-            backtest_score=result['best_merged_avg_hits'],
-        )
-
-        # 生成报告
-        if self.backtest_engine:
-            report_path = self.backtest_engine.generate_report()
-            if report_path:
-                text.insert(tk.END, f"\n报告已保存: {report_path}\n")
-                self._log(f"回测报告已生成: {report_path}", "success")
-
-        self._update_status(
-            f"回测完成! 最佳合并平均命中: {result['best_merged_avg_hits']:.3f}")
-        self._log(f"✓ 回测完成! 最佳合并平均命中: {result['best_merged_avg_hits']:.3f}",
-                  "success")
-
-        # 刷新优化Tab
         self._refresh_optimize_display()
 
     def _stop_operation(self):
@@ -1066,6 +1037,29 @@ class LotterySystemGUI:
             text.insert(tk.END, "\n━━━ 当前颗粒度权重 ━━━\n")
             for gn, w in sorted(gw.items(), key=lambda x: x[1], reverse=True):
                 text.insert(tk.END, f"  {gn}: {w:.4f}\n")
+
+        # 当前模型参数
+        text.insert(tk.END, "\n━━━ 当前模型参数 ━━━\n")
+        param_method_names = {
+            'statistical': '方法1: 统计概率分析',
+            'timeseries': '方法2: 时间序列分析',
+            'pattern': '方法3: 模式识别分析',
+            'ml': '方法4: 机器学习分析',
+            'markov': '方法5: 马尔可夫分析',
+            'montecarlo': '方法6: 蒙特卡罗模拟',
+            'clustering': '方法7: 聚类分析',
+            'ngram': '方法8: N-gram分析',
+        }
+        has_params = False
+        for method_key, method_label in param_method_names.items():
+            method_params = config['params'].get(method_key, {})
+            if method_params:
+                has_params = True
+                text.insert(tk.END, f"  [{method_label}]\n")
+                for pname, pval in sorted(method_params.items()):
+                    text.insert(tk.END, f"    {pname}: {pval}\n")
+        if not has_params:
+            text.insert(tk.END, "  (使用默认参数)\n")
 
     def _rollback_config(self):
         """回退配置到上一版本"""
