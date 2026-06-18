@@ -860,53 +860,68 @@ class LotteryPredictor:
     def _build_ml_features(self, data: pd.DataFrame, p: Dict,
                            total: int, main_min: int, main_max: int
                            ) -> Tuple[np.ndarray, int]:
-        """构建ML特征矩阵（LightGBM/XGBoost/RF共享）"""
-        features_list = []
+        """构建ML特征矩阵（向量化，LightGBM/XGBoost/RF共享）"""
+        # 预转换为numpy数组（关键优化：避免iterrows()）
+        main_array = data[list(self.main_cols)].values.astype(int)
+        n_cols = len(self.main_cols)
+        n_nums = main_max - main_min + 1
+        n_windows = len(p['lookback_windows'])
+
+        # 为每个时期预计算窗口起始索引
+        lookbacks = p['lookback_windows']
+        max_lookback = max(lookbacks)
+        max_feat_len = n_nums * n_windows + n_nums + 4
+
+        # 预分配特征矩阵
+        X = np.zeros((total, max_feat_len), dtype=np.float64)
+
+        # 逐行构建（仍需循环，但用numpy操作代替iterrows）
         for i in range(total):
-            past_data = data.iloc[i+1:] if i < total - 1 else data.iloc[1:]
-            feat = []
+            past_start = i + 1
+            if past_start >= total:
+                past_start = 1
+            past_len = total - past_start
+            if past_len < 1:
+                continue
+            past_array = main_array[past_start:total]  # 该期之前的历史
 
-            for lookback in p['lookback_windows']:
-                if len(past_data) >= lookback:
-                    window = past_data.head(lookback)
+            feat_idx = 0
+
+            # 窗口频率特征（向量化：用np.bincount累加各窗口的号码出现次数）
+            for lookback in lookbacks:
+                win_size = min(lookback, past_len)
+                if win_size > 0:
+                    win_data = past_array[:win_size]
+                    # 展平窗口数据并用bincount统计频率
+                    counts = np.bincount(win_data.ravel(), minlength=main_max + 1)
+                    for num in range(main_min, main_max + 1):
+                        X[i, feat_idx] = counts[num] / win_size
+                        feat_idx += 1
                 else:
-                    window = past_data
-                freq = defaultdict(int)
-                for _, row in window.iterrows():
-                    for col in self.main_cols:
-                        num = int(row[col])
-                        if main_min <= num <= main_max:
-                            freq[num] += 1
-                for num in range(main_min, main_max + 1):
-                    feat.append(freq.get(num, 0) / max(len(window), 1))
+                    feat_idx += n_nums
 
-            # 遗漏值
+            # 遗漏值特征（向量化：用argmax找每个号码首次出现的位置）
             for num in range(main_min, main_max + 1):
-                missing = 0
-                for idx, (_, row) in enumerate(past_data.iterrows()):
-                    found = any(int(row[c]) == num for c in self.main_cols)
-                    if found:
-                        missing = idx
-                        break
-                    missing = idx + 1
-                feat.append(missing / max(total, 1))
+                appeared = np.any(past_array == num, axis=1)
+                if np.any(appeared):
+                    X[i, feat_idx] = np.argmax(appeared) / total
+                else:
+                    X[i, feat_idx] = past_len / total
+                feat_idx += 1
 
             # 上期全局特征
-            if len(past_data) > 0:
-                last_row = past_data.iloc[0]
-                last_nums = [int(last_row[c]) for c in self.main_cols]
-                feat.append(sum(last_nums) / (main_max * len(self.main_cols)))
-                feat.append((max(last_nums) - min(last_nums)) / main_max)
-                feat.append(sum(1 for n in last_nums if n % 2) / len(self.main_cols))
-                feat.append(sum(1 for n in last_nums if n <= (
-                    main_min + main_max)//2) / len(self.main_cols))
+            if past_len > 0:
+                last_nums = past_array[0]
+                X[i, feat_idx] = np.sum(last_nums) / (main_max * n_cols); feat_idx += 1
+                X[i, feat_idx] = (np.max(last_nums) - np.min(last_nums)) / main_max; feat_idx += 1
+                X[i, feat_idx] = np.sum(last_nums % 2) / n_cols; feat_idx += 1
+                X[i, feat_idx] = np.sum(last_nums <= (main_min + main_max)//2) / n_cols; feat_idx += 1
             else:
-                feat.extend([0, 0, 0, 0])
+                feat_idx += 4
 
-            features_list.append(feat)
-
-        X = np.array(features_list, dtype=np.float64)
-        n_features = X.shape[1]
+        # 修剪到实际使用长度
+        X = X[:, :feat_idx]
+        n_features = feat_idx
         return X, n_features
 
     # ========================================================================
