@@ -262,11 +262,18 @@ class BacktestEngine:
                 self.history_detail = data.get('combos', [])
                 self.param_performance = data.get('param_perf', {})
                 self.combo_counter = data.get('counter', 0)
-                # 恢复top_combos（从history_detail中取top-10）
+                # 恢复top_combos（从history_detail中取top-10，键名需转换）
                 sorted_combos = sorted(
                     self.history_detail,
                     key=lambda x: x.get('avg_hits', 0), reverse=True)
-                self.top_combos = sorted_combos[:10]
+                self.top_combos = []
+                for entry in sorted_combos[:10]:
+                    self.top_combos.append({
+                        'params': entry.get('params_snapshot', {}),
+                        'weights': entry.get('weights_snapshot', {}),
+                        'avg_hits': entry.get('avg_hits', 0),
+                        'combo_id': entry.get('combo_id', 0),
+                    })
             except Exception:
                 self.history_detail = []
                 self.param_performance = {}
