@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # 导入业务模块
 from predictor import LotteryPredictor, DEFAULT_PARAMS, METHOD_NAMES_NEW
 from merger import ResultMerger, METHOD_NAMES, GRANULARITY_NAMES
-from backtester import BacktestEngine, BacktestRunner
+from backtester import BacktestEngine, BacktestRunner, SolveRunner
 from config_manager import ConfigManager
 
 # 颗粒度映射
@@ -296,6 +296,14 @@ class LotterySystemGUI:
                                      relief=tk.FLAT, padx=8, pady=6,
                                      state=tk.DISABLED, cursor="hand2")
         self.btn_backtest.pack(fill=tk.X, pady=3)
+
+        self.btn_solve = tk.Button(quick_frame, text="◆ 求解模式",
+                                   command=self._open_solve_window,
+                                   font=("Microsoft YaHei", 10, "bold"),
+                                   bg="#8e44ad", fg="white",
+                                   relief=tk.FLAT, padx=8, pady=6,
+                                   state=tk.DISABLED, cursor="hand2")
+        self.btn_solve.pack(fill=tk.X, pady=3)
 
         self.btn_stop = tk.Button(quick_frame, text="■ 停止",
                                  command=self._stop_operation,
@@ -622,6 +630,7 @@ class LotterySystemGUI:
         self.progress_bar.stop()
         self.btn_predict.config(state=tk.NORMAL)
         self.btn_backtest.config(state=tk.NORMAL)
+        self.btn_solve.config(state=tk.NORMAL)
         self._update_status(f"数据加载成功: {count}条{lt}记录")
         self._log(f"✓ 数据加载成功: {count}条{lt}记录", "success")
 
@@ -1023,6 +1032,13 @@ class LotterySystemGUI:
         self.backtest_elapsed_label.config(text="")
         self._refresh_optimize_display()
 
+    def _open_solve_window(self):
+        """打开求解模式独立窗口"""
+        if self.data_reverse is None:
+            messagebox.showwarning("警告", "请先加载数据")
+            return
+        SolveWindow(self.root, self.data_file, self.colors)
+
     def _stop_operation(self):
         """停止当前操作"""
         self.running = False
@@ -1031,6 +1047,7 @@ class LotterySystemGUI:
         self.progress_bar.stop()
         self.btn_predict.config(state=tk.NORMAL)
         self.btn_backtest.config(state=tk.NORMAL)
+        self.btn_solve.config(state=tk.NORMAL)
         self.btn_stop.config(state=tk.DISABLED)
         self._update_status("已停止")
         self._log("操作已停止", "warning")
@@ -1260,6 +1277,264 @@ class LotterySystemGUI:
         self._refresh_optimize_display()
         self.root.mainloop()
 
+
+# ============================================================================
+#  求解模式独立窗口
+# ============================================================================
+
+class SolveWindow:
+    """求解模式 — 反向搜索满足容差条件的参数组合"""
+
+    def __init__(self, parent, data_file: str, colors: dict):
+        self.data_file = data_file
+        self.colors = colors
+        self.solve_engine = None
+        self.solve_runner = None
+        self.running = False
+        self.solutions_found = 0
+
+        self.win = tk.Toplevel(parent)
+        self.win.title("求解模式 — 容差反向搜索")
+        self.win.geometry("900x650")
+        self.win.minsize(700, 500)
+        self.win.configure(bg=colors['bg'])
+
+        self._setup_ui()
+        self._load_engine()
+
+    def _setup_ui(self):
+        """构建求解窗口UI"""
+        c = self.colors
+
+        # 顶栏
+        header = tk.Frame(self.win, bg=c['primary'], height=45)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        tk.Label(header, text="◆ 求解模式 — 反向搜索满足容差条件的参数组合",
+                font=("Microsoft YaHei", 13, "bold"),
+                fg="white", bg=c['primary']).pack(side=tk.LEFT, padx=20, pady=10)
+
+        # 设置区
+        settings = tk.LabelFrame(self.win, text="求解设置", font=("Microsoft YaHei", 11),
+                                bg=c['bg'], fg=c['text'])
+        settings.pack(fill=tk.X, padx=15, pady=(10, 5))
+
+        row1 = tk.Frame(settings, bg=c['bg'])
+        row1.pack(fill=tk.X, padx=10, pady=8)
+
+        tk.Label(row1, text="求解期数:", font=("Microsoft YaHei", 10),
+                bg=c['bg']).pack(side=tk.LEFT)
+        self.periods_var = tk.StringVar(value="1")
+        ttk.Combobox(row1, textvariable=self.periods_var,
+                    values=["1", "5", "10", "20", "50"],
+                    width=6, state="readonly", font=("Microsoft YaHei", 10)
+                    ).pack(side=tk.LEFT, padx=(5, 20))
+
+        tk.Label(row1, text="主球最低命中:", font=("Microsoft YaHei", 10),
+                bg=c['bg']).pack(side=tk.LEFT)
+        self.main_tol_var = tk.StringVar(value="5")
+        ttk.Combobox(row1, textvariable=self.main_tol_var,
+                    values=["3", "4", "5", "6"],
+                    width=4, state="readonly", font=("Microsoft YaHei", 10)
+                    ).pack(side=tk.LEFT, padx=(5, 20))
+
+        tk.Label(row1, text="辅助球最低命中:", font=("Microsoft YaHei", 10),
+                bg=c['bg']).pack(side=tk.LEFT)
+        self.aux_tol_var = tk.StringVar(value="1")
+        ttk.Combobox(row1, textvariable=self.aux_tol_var,
+                    values=["0", "1", "2"],
+                    width=4, state="readonly", font=("Microsoft YaHei", 10)
+                    ).pack(side=tk.LEFT, padx=5)
+
+        row2 = tk.Frame(settings, bg=c['bg'])
+        row2.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Label(row2, text="最大时间(分钟):", font=("Microsoft YaHei", 10, "bold"),
+                bg=c['bg'], fg=c['danger']).pack(side=tk.LEFT)
+        self.time_var = tk.StringVar(value="5")
+        ttk.Combobox(row2, textvariable=self.time_var,
+                    values=["1", "3", "5", "10", "30", "60", "120", "0(不限)"],
+                    width=10, state="readonly", font=("Microsoft YaHei", 10)
+                    ).pack(side=tk.LEFT, padx=5)
+
+        tk.Label(row2, text="并行线程:", font=("Microsoft YaHei", 10),
+                bg=c['bg']).pack(side=tk.LEFT, padx=(20, 5))
+        self.worker_var = tk.StringVar(value="4")
+        ttk.Combobox(row2, textvariable=self.worker_var,
+                    values=["1", "2", "4", "6", "8"],
+                    width=4, state="readonly", font=("Microsoft YaHei", 10)
+                    ).pack(side=tk.LEFT, padx=5)
+
+        # 按钮
+        btn_frame = tk.Frame(settings, bg=c['bg'])
+        btn_frame.pack(fill=tk.X, padx=10, pady=8)
+
+        self.btn_start = tk.Button(btn_frame, text="▶ 开始求解",
+                                  command=self._start_solve,
+                                  font=("Microsoft YaHei", 11, "bold"),
+                                  bg=c['primary'], fg="white",
+                                  relief=tk.FLAT, padx=15, pady=5,
+                                  cursor="hand2")
+        self.btn_start.pack(side=tk.LEFT, padx=5)
+
+        self.btn_stop = tk.Button(btn_frame, text="■ 停止",
+                                 command=self._stop_solve,
+                                 font=("Microsoft YaHei", 11),
+                                 bg=c['danger'], fg="white",
+                                 relief=tk.FLAT, padx=15, pady=5,
+                                 state=tk.DISABLED, cursor="hand2")
+        self.btn_stop.pack(side=tk.LEFT, padx=5)
+
+        self.status_label = tk.Label(btn_frame, text="就绪",
+                                    font=("Microsoft YaHei", 9),
+                                    bg=c['bg'], fg=c['text_light'])
+        self.status_label.pack(side=tk.LEFT, padx=15)
+
+        # 进度条
+        self.progress = ttk.Progressbar(settings, length=600, mode='indeterminate')
+        self.progress.pack(fill=tk.X, padx=10, pady=(0, 8))
+
+        # 结果区
+        result_frame = tk.LabelFrame(self.win, text="求解结果",
+                                    font=("Microsoft YaHei", 11),
+                                    bg=c['bg'], fg=c['text'])
+        result_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+
+        self.result_text = tk.Text(result_frame, font=("Consolas", 9),
+                                  wrap=tk.WORD, bg=c['card'], fg=c['text'],
+                                  relief=tk.FLAT, bd=5, padx=10, pady=10)
+        scroll = tk.Scrollbar(result_frame, command=self.result_text.yview)
+        self.result_text.config(yscrollcommand=scroll.set)
+        self.result_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.result_text.insert(tk.END,
+            "求解模式说明:\n"
+            "  给定最新N期开奖号码，反向搜索所有满足容差条件的(参数,权重)组合。\n"
+            "  例如: 求解1期, 主球≥5, 辅助球≥1 → 找到能精确命中5+1的组合。\n"
+            "  智能搜索策略：加权采样+收敛微调+随机脉冲，与回测共享历史数据。\n\n"
+            "等待开始...\n")
+
+    def _load_engine(self):
+        """加载求解引擎"""
+        from backtester import SolveEngine
+        self.solve_engine = SolveEngine()
+        ok, msg = self.solve_engine.load_data(self.data_file)
+        if not ok:
+            messagebox.showerror("错误", f"数据加载失败: {msg}")
+        else:
+            self.result_text.insert(tk.END, f"数据加载成功: {msg}\n")
+
+    def _log(self, msg: str):
+        """添加日志"""
+        ts = datetime.now().strftime("%H:%M:%S")
+        self.result_text.insert(tk.END, f"[{ts}] {msg}\n")
+        self.result_text.see(tk.END)
+
+    def _start_solve(self):
+        """开始求解"""
+        solve_periods = int(self.periods_var.get())
+        tol_main = int(self.main_tol_var.get())
+        tol_aux = int(self.aux_tol_var.get())
+        time_str = self.time_var.get()
+        num_workers = int(self.worker_var.get())
+
+        max_time = 0 if '不限' in time_str else int(time_str) * 60
+
+        self.solve_engine.set_solve_config(
+            solve_periods=solve_periods,
+            tolerance_main=tol_main,
+            tolerance_aux=tol_aux,
+            max_search_time=max_time,
+            num_workers=num_workers,
+        )
+
+        self.running = True
+        self.solutions_found = 0
+        self.btn_start.config(state=tk.DISABLED)
+        self.btn_stop.config(state=tk.NORMAL)
+        self.progress.start()
+        self.status_label.config(text="求解中...")
+
+        self.result_text.delete(1.0, tk.END)
+        self._log(f"求解启动: 最新{solve_periods}期, "
+                 f"主球≥{tol_main}, 辅助球≥{tol_aux}, "
+                 f"时间={'不限' if max_time==0 else f'{max_time//60}分钟'}, "
+                 f"{num_workers}线程")
+
+        def on_progress(pct, msg):
+            self.win.after(0, lambda: self.status_label.config(text=msg))
+
+        def on_log(msg):
+            self.win.after(0, lambda: self._log(msg))
+
+        def on_done(result):
+            self.win.after(0, lambda: self._on_solve_done(result))
+
+        self.solve_runner = SolveRunner(self.solve_engine)
+        self.solve_runner.run_async(
+            on_progress=on_progress,
+            on_log=on_log,
+            on_done=on_done,
+        )
+
+    def _stop_solve(self):
+        """停止求解"""
+        self.running = False
+        if self.solve_runner:
+            self.solve_runner.stop()
+        self.progress.stop()
+        self.btn_start.config(state=tk.NORMAL)
+        self.btn_stop.config(state=tk.DISABLED)
+        self.status_label.config(text="已停止")
+
+    def _on_solve_done(self, result: dict):
+        """求解完成"""
+        self.progress.stop()
+        self.running = False
+        self.btn_start.config(state=tk.NORMAL)
+        self.btn_stop.config(state=tk.DISABLED)
+
+        self.result_text.delete(1.0, tk.END)
+
+        if not result.get('success'):
+            self.status_label.config(text="求解失败")
+            self.result_text.insert(tk.END,
+                f"求解失败: {result.get('error', '未知错误')}\n")
+            return
+
+        solutions = result.get('solutions', [])
+        total = result.get('total_evaluated', 0)
+        total_time = result.get('total_time', 0)
+        cfg = result.get('solve_config', {})
+
+        self.result_text.insert(tk.END,
+            "╔══════════════════════════════════╗\n"
+            "║     求 解 结 果 报 告           ║\n"
+            "╚══════════════════════════════════╝\n\n")
+        self.result_text.insert(tk.END,
+            f"求解期数: {cfg.get('periods', '?')}期\n"
+            f"容差条件: 主球≥{cfg.get('tolerance_main', '?')}, "
+            f"辅助球≥{cfg.get('tolerance_aux', '?')}\n"
+            f"总评估组合: {total}组\n"
+            f"找到解: {len(solutions)}个\n"
+            f"总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)\n\n")
+
+        if solutions:
+            self.result_text.insert(tk.END,
+                f"━━━ 找到 {len(solutions)} 个有效解 ━━━\n\n")
+            for i, sol in enumerate(solutions):
+                self.result_text.insert(tk.END,
+                    f"【解 #{i+1}】 组合ID={sol['combo_id']} "
+                    f"平均命中={sol['avg_total_hits']:.3f} "
+                    f"最高={sol['max_total_hits']}\n")
+        else:
+            self.result_text.insert(tk.END,
+                "未找到满足容差条件的解。\n"
+                "建议: 降低容差条件或延长搜索时间。\n")
+
+        self.status_label.config(
+            text=f"完成! 找到{len(solutions)}个解, 耗时{total_time:.0f}s")
 
 # ============================================================================
 #  入口

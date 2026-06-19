@@ -1062,6 +1062,294 @@ class BacktestRunner:
 
 
 # ============================================================================
+#  求解模式引擎：反向搜索满足容差条件的参数组合
+# ============================================================================
+
+class SolveEngine(BacktestEngine):
+    """求解模式引擎 — 找到所有满足容差条件的(参数,权重)组合"""
+
+    def __init__(self):
+        super().__init__()
+        self.solutions = []          # 所有满足条件的解
+        self.tolerance_main = 5      # 主球最低命中
+        self.tolerance_aux = 1       # 辅助球最低命中
+        self.solve_periods = 1       # 求解期数
+        self._solution_hashes = set()  # 去重（避免重复收集同一组合）
+        self._best_solve_score = 0.0  # 用于智能搜索引导
+
+    def set_solve_config(self, solve_periods: int = 1,
+                         tolerance_main: int = 5,
+                         tolerance_aux: int = 1,
+                         max_search_time: int = 0,
+                         num_workers: int = 4):
+        """设置求解参数（一次性设置所有配置，避免被覆盖）"""
+        self.solve_periods = solve_periods
+        self.tolerance_main = tolerance_main
+        self.tolerance_aux = tolerance_aux
+        self.test_periods = solve_periods
+        self.max_search_time = max_search_time
+        self.num_workers = max(1, num_workers)
+        # 智能颗粒度
+        if solve_periods <= 2:
+            self.granularities = [500]
+            self.gran_names = ['500期']
+        elif solve_periods <= 10:
+            self.granularities = [100, 500]
+            self.gran_names = ['100期', '500期']
+        else:
+            self.granularities = [50, 100, 500]
+            self.gran_names = ['50期', '100期', '500期']
+
+    def _check_solution(self, result: Dict) -> Tuple[bool, float]:
+        """
+        检查组合是否为有效解。
+
+        返回: (is_solution, closeness_score)
+        closeness_score 用于智能搜索引导：越接近容差越高
+        """
+        if 'error' in result or not result.get('period_results'):
+            return False, 0.0
+
+        all_pass = True
+        total_closeness = 0.0
+        n_periods = len(result['period_results'])
+
+        if n_periods == 0:
+            return False, 0.0
+
+        for pr in result['period_results']:
+            main_ok = pr['main_hits'] >= self.tolerance_main
+            aux_ok = pr['aux_hits'] >= self.tolerance_aux
+            if not main_ok or not aux_ok:
+                all_pass = False
+            # 每期的贴近度（0~1，越接近容差越高）
+            main_closeness = min(1.0, pr['main_hits'] / max(1, self.tolerance_main))
+            aux_closeness = min(1.0, pr['aux_hits'] / max(1, self.tolerance_aux))
+            total_closeness += (main_closeness * 0.7 + aux_closeness * 0.3)
+
+        avg_closeness = total_closeness / n_periods
+        return all_pass, avg_closeness
+
+    def run(self, num_combos_to_try: int = None) -> Dict[str, Any]:
+        """
+        运行求解搜索。与回测类似的循环，但收集所有满足容差的解。
+        """
+        if self.data_reverse is None:
+            return {'success': False, 'error': '请先加载数据'}
+
+        self.running = True
+        self.start_time = time.time()
+        self.solutions = []
+        self._solution_hashes = set()
+        self.best_score = -1.0
+        self.all_results = []
+        self._best_solve_score = 0.0
+
+        actual_test_count = min(self.solve_periods, self.total_periods - 10)
+        self._log(f"求解启动: 求解最新{actual_test_count}期, "
+                  f"容差=主球≥{self.tolerance_main},辅助球≥{self.tolerance_aux}, "
+                  f"时间上限={'不限' if self.max_search_time == 0 else f'{self.max_search_time}秒'}, "
+                  f"{self.num_workers}线程并行")
+        self._log(f"已记录{len(self.tried_combos)}组已尝试组合")
+
+        # 智能搜索：与回测相同的3阶段策略
+        rng = np.random.RandomState(int(time.time() * 1000) % 10000)
+        combo_pool = []
+        skipped = 0
+
+        batch_size = 10
+        while len(combo_pool) < batch_size:
+            params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=True)
+            if h in self.tried_combos:
+                skipped += 1
+                if skipped > batch_size * 3:
+                    params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=False)
+            combo_pool.append((params, weights, h, len(combo_pool), phase_lbl))
+            self.combo_counter += 1
+
+        combo_idx = 0
+        batch_submitted = 0
+        active_futures = {}
+        total_evaluated = 0
+
+        max_concurrent = max(1, min(self.num_workers, 8))
+
+        with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            while self.running:
+                if self.max_search_time > 0:
+                    elapsed = time.time() - self.start_time
+                    if elapsed > self.max_search_time:
+                        self._log(f"达到时间上限({self.max_search_time}秒)，停止搜索")
+                        for f in list(active_futures.keys()):
+                            f.cancel()
+                        break
+
+                if batch_submitted >= len(combo_pool):
+                    for _ in range(10):
+                        params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=True)
+                        if h in self.tried_combos:
+                            skipped += 1
+                        self.combo_counter += 1
+                        combo_pool.append((params, weights, h, len(combo_pool), phase_lbl))
+
+                while (len(active_futures) < max_concurrent and
+                       batch_submitted < len(combo_pool)):
+                    params, weights, h, cid, phase_lbl = combo_pool[batch_submitted]
+                    future = executor.submit(self.evaluate_combo, params, weights,
+                                            seed=cid, combo_id=cid)
+                    active_futures[future] = (cid, h, params, weights, phase_lbl)
+                    batch_submitted += 1
+
+                if not active_futures:
+                    if self.max_search_time == 0:
+                        break
+                    time.sleep(0.5)
+                    continue
+
+                try:
+                    done = list(as_completed(active_futures, timeout=5.0))
+                except TimeoutError:
+                    continue
+
+                for future in done:
+                    cid, h, params, weights, phase_lbl = active_futures.pop(future)
+                    try:
+                        result = future.result(timeout=5)
+                    except Exception as e:
+                        self._log(f"求解#{cid}评估异常: {e}")
+                        continue
+
+                    if 'error' in result:
+                        continue
+
+                    total_evaluated += 1
+                    score = result['avg_total_hits']
+                    self.all_results.append(result)
+                    self.tried_combos[h] = score
+
+                    # 检查是否为解
+                    is_solution, closeness = self._check_solution(result)
+                    if is_solution and h not in self._solution_hashes:
+                        self._solution_hashes.add(h)
+                        self.solutions.append({
+                            'combo_id': cid,
+                            'params': params,
+                            'weights': weights,
+                            'combo_hash': h,
+                            'period_results': result.get('period_results', []),
+                            'avg_total_hits': score,
+                            'max_total_hits': result['max_total_hits'],
+                            'phase': phase_lbl,
+                        })
+                        self._log(
+                            f"★ 找到解 #{len(self.solutions)}! "
+                            f"#{cid} 平均命中={score:.3f}, "
+                            f"主球容差={self.tolerance_main}, "
+                            f"辅助球容差={self.tolerance_aux}")
+
+                    # 用 closeness 引导智能搜索（替代 avg_hits）
+                    solve_score = closeness if closeness > 0 else score / 7.0
+                    self._update_param_performance(params, solve_score)
+                    self.history_detail.append({
+                        'combo_id': cid,
+                        'phase': phase_lbl,
+                        'avg_hits': round(score, 4),
+                        'max_hits': result['max_total_hits'],
+                        'closeness': round(closeness, 4),
+                        'is_solution': is_solution,
+                        'eval_time': result.get('evaluation_time', 0),
+                        'params_snapshot': {mk: dict(mp) for mk, mp in params.items()},
+                        'weights_snapshot': {
+                            'method_weights': dict(weights.get('method_weights', {})),
+                            'granularity_weights': dict(weights.get('granularity_weights', {})),
+                        },
+                    })
+
+                    # 更新Top-10
+                    if solve_score >= self._best_solve_score:
+                        self._best_solve_score = solve_score
+                    self.top_combos.append({
+                        'params': params, 'weights': weights,
+                        'avg_hits': solve_score, 'combo_id': cid,
+                    })
+                    self.top_combos.sort(key=lambda x: x['avg_hits'], reverse=True)
+                    self.top_combos = self.top_combos[:10]
+
+                    combo_idx += 1
+                    elapsed = time.time() - self.start_time
+                    pct = min(95, (elapsed / self.max_search_time * 100)
+                             if self.max_search_time > 0 else (combo_idx * 10))
+                    status = (f"已试{total_evaluated}组 | "
+                             f"找到{len(self.solutions)}个解 | "
+                             f"耗时{elapsed:.0f}s")
+                    self._progress(pct, status)
+
+                    if num_combos_to_try and combo_idx >= num_combos_to_try:
+                        self._log(f"达到组合数上限({num_combos_to_try})")
+                        for f in list(active_futures.keys()):
+                            f.cancel()
+                        active_futures.clear()
+                        break
+
+                if num_combos_to_try and combo_idx >= num_combos_to_try:
+                    break
+
+        total_time = time.time() - self.start_time
+        self.running = False
+        self._save_tried_combos()
+        self._save_history_detail()
+
+        self._log(f"\n求解完成! 总耗时{total_time:.0f}秒, "
+                  f"评估{total_evaluated}组, 找到{len(self.solutions)}个解")
+
+        return {
+            'success': True,
+            'solutions': self.solutions,
+            'total_evaluated': total_evaluated,
+            'total_combos_skipped': skipped,
+            'total_time': total_time,
+            'solve_config': {
+                'periods': self.solve_periods,
+                'tolerance_main': self.tolerance_main,
+                'tolerance_aux': self.tolerance_aux,
+            },
+        }
+
+
+class SolveRunner:
+    """在后台线程中运行求解模式"""
+
+    def __init__(self, engine: SolveEngine):
+        self.engine = engine
+        self.thread = None
+        self.result = None
+
+    def run_async(self, on_progress=None, on_log=None, on_done=None,
+                  on_solution=None):
+        """异步运行求解"""
+        self.engine.set_callbacks(on_progress, on_log)
+        self.result = None
+
+        def _run():
+            try:
+                self.result = self.engine.run()
+                if on_done:
+                    on_done(self.result)
+            except Exception as e:
+                err = {'success': False, 'error': str(e)}
+                if on_log:
+                    on_log(f"求解异常: {e}\n{traceback.format_exc()}")
+                if on_done:
+                    on_done(err)
+
+        self.thread = threading.Thread(target=_run, daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        self.engine.stop()
+
+
+# ============================================================================
 #  测试
 # ============================================================================
 
