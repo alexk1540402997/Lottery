@@ -54,6 +54,7 @@ PARAM_SEARCH_SPACE = {
         'window_weights_mid':   [0.20, 0.25, 0.30, 0.35, 0.40],
         'trend_bonus':       [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40],
         'sum_tolerance':     [4, 6, 8, 10, 12, 15],
+        'sum_iterations':    [20],  # 固定20，已验证300→20预测不变
     },
     'pattern': {
         'zone_weight':       [0.10, 0.15, 0.20, 0.25, 0.30],
@@ -63,7 +64,7 @@ PARAM_SEARCH_SPACE = {
         'consecutive_threshold': [0.25, 0.30, 0.35, 0.40, 0.45],
     },
     'ml': {
-        'n_estimators':      [30, 50, 80, 100],
+        'n_estimators':      [15, 20, 30, 50],
         'max_depth':         [4, 6, 8, 10],
         'num_leaves':        [10, 15, 20, 31],
         'learning_rate':     [0.05, 0.10, 0.15],
@@ -73,7 +74,7 @@ PARAM_SEARCH_SPACE = {
         'base_freq_weight':  [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50],
     },
     'montecarlo': {
-        'num_simulations':   [1000, 2000, 3000, 5000],
+        'num_simulations':   [300, 500, 800, 1200],
         'sum_sigma_range':   [1.5, 2.0, 2.5, 3.0],
         'in_range_bonus':    [1.2, 1.5, 1.8, 2.0],
     },

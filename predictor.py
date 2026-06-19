@@ -67,7 +67,7 @@ DEFAULT_PARAMS = {
         'window_weights': [0.50, 0.30, 0.20],  # 对应窗口权重
         'trend_bonus': 0.30,        # 升温趋势加成
         'sum_tolerance': 8,         # 和值容忍范围
-        'sum_iterations': 300,      # 和值约束搜索次数
+        'sum_iterations': 30,       # 和值约束搜索次数（20足够，300浪费）
     },
     # 方法3: 模式识别分析
     'pattern': {
@@ -81,7 +81,7 @@ DEFAULT_PARAMS = {
     },
     # 方法4: LightGBM (替代RF)
     'ml': {
-        'n_estimators': 50,
+        'n_estimators': 20,
         'max_depth': 6,
         'num_leaves': 15,
         'min_child_samples': 20,
@@ -98,7 +98,7 @@ DEFAULT_PARAMS = {
     },
     # 方法6: 蒙特卡罗模拟
     'montecarlo': {
-        'num_simulations': 3000,
+        'num_simulations': 500,
         'sum_sigma_range': 2.0,     # 和值容差(σ倍数)
         'in_range_bonus': 1.5,      # 正常和值计数加成
         'out_range_penalty': 0.5,   # 异常和值计数折扣
