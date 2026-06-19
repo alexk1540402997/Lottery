@@ -155,14 +155,28 @@ class BacktestEngine:
         self.best_period_results = []  # 每期详细命中
         self.all_results = []          # 所有组合的评估结果
 
+        # 智能搜索：参数表现追踪
+        self.param_performance: Dict = {}  # {method: {param: {value: {count, total_score}}}}
+        self.history_detail: List[Dict] = []  # 全部组合详情
+        self.top_combos: List[Dict] = []      # Top-K最佳（最多保存10个）
+        self.combo_counter = 0                # 累计组合序号
+
+        # 搜索阶段控制
+        self.phase = 'exploration'      # exploration → convergence
+        self.phase_switch_ratio = 0.30  # 前30%时间探索
+        self.pulse_interval = 20        # 每N个组合一次随机脉冲
+        self.perturb_ratio = 0.20       # 收敛期扰动参数比例（默认20%）
+        self._phase_switched_at = 0     # 阶段切换时的combo_counter
+
         # 运行时状态
         self.running = False
         self.start_time = 0.0
         self.progress_callback = None
         self.log_callback = None
 
-        # 加载历史去重记录
+        # 加载历史记录
         self._load_tried_combos()
+        self._load_history_detail()
 
     # ========================================================================
     #  数据加载
@@ -237,12 +251,106 @@ class BacktestEngine:
         except Exception:
             pass
 
+    def _load_history_detail(self):
+        """加载历史详情记录"""
+        history_file = os.path.join(os.path.dirname(self.tried_log_file),
+                                    "backtest_history.json")
+        if os.path.exists(history_file):
+            try:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.history_detail = data.get('combos', [])
+                self.param_performance = data.get('param_perf', {})
+                self.combo_counter = data.get('counter', 0)
+                # 恢复top_combos（从history_detail中取top-10）
+                sorted_combos = sorted(
+                    self.history_detail,
+                    key=lambda x: x.get('avg_hits', 0), reverse=True)
+                self.top_combos = sorted_combos[:10]
+            except Exception:
+                self.history_detail = []
+                self.param_performance = {}
+                self.combo_counter = 0
+                self.top_combos = []
+
+    def _save_history_detail(self):
+        """保存历史详情记录"""
+        history_file = os.path.join(os.path.dirname(self.tried_log_file),
+                                    "backtest_history.json")
+        os.makedirs(os.path.dirname(history_file), exist_ok=True)
+        try:
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'counter': self.combo_counter,
+                    'combos': self.history_detail,
+                    'param_perf': self.param_performance,
+                }, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _update_param_performance(self, params: Dict, score: float):
+        """更新参数表现追踪（加权采样依据）"""
+        for method_name, method_params in params.items():
+            if method_name not in self.param_performance:
+                self.param_performance[method_name] = {}
+            for pname, pval in method_params.items():
+                if pname not in self.param_performance[method_name]:
+                    self.param_performance[method_name][pname] = {}
+                pval_str = str(pval)
+                if pval_str not in self.param_performance[method_name][pname]:
+                    self.param_performance[method_name][pname][pval_str] = {
+                        'count': 0, 'total_score': 0.0}
+                perf = self.param_performance[method_name][pname][pval_str]
+                perf['count'] += 1
+                perf['total_score'] += score
+
+    def _get_param_weight(self, method_name: str, pname: str, pval) -> float:
+        """获取某个参数值的加权权重（用于加权采样）"""
+        perf = self.param_performance.get(method_name, {}).get(pname, {}).get(str(pval))
+        if perf and perf['count'] > 0:
+            avg = perf['total_score'] / perf['count']
+            return max(0.01, avg + 0.1)  # 保底权重0.01，避免完全排除
+        return 1.0  # 新值默认权重
+
+    def _get_perturb_ratio(self) -> float:
+        """根据当前最佳命中率动态调整扰动比例"""
+        if self.best_score >= 5.0:
+            return 0.02   # 稳定在7中5: 扰动1个参数(~2%)
+        elif self.best_score >= 4.0:
+            return 0.08   # 稳定在7中4: 扰动5个参数(~8%)
+        elif self.best_score >= 3.0:
+            return 0.05   # 稳定在7中3: 扰动5%
+        return self.perturb_ratio  # 默认20%
+
     # ========================================================================
-    #  参数/权重组合生成器（无限流，由时间控制停止）
+    #  智能组合生成器（3阶段：探索→收敛→随机脉冲）
     # ========================================================================
 
-    def _sample_params(self, rng: np.random.RandomState) -> Dict[str, Dict]:
-        """随机采样一组模型参数"""
+    def _sample_params_weighted(self, rng: np.random.RandomState
+                                ) -> Dict[str, Dict]:
+        """加权采样：历史表现好的参数值有更高概率被选中"""
+        sampled = {}
+        for method_name, space in PARAM_SEARCH_SPACE.items():
+            config = {}
+            for pname, pvalues in space.items():
+                # 计算每个候选值的权重
+                w_list = []
+                for pv in pvalues:
+                    w = self._get_param_weight(method_name, pname, pv)
+                    w_list.append(w)
+                total_w = sum(w_list)
+                if total_w > 0:
+                    probs = [w / total_w for w in w_list]
+                    idx = rng.choice(len(pvalues), p=probs)
+                else:
+                    idx = rng.randint(0, len(pvalues))
+                config[pname] = pvalues[idx]
+            sampled[method_name] = config
+        return sampled
+
+    def _sample_params_random(self, rng: np.random.RandomState
+                              ) -> Dict[str, Dict]:
+        """纯随机采样（脉冲用）"""
         sampled = {}
         for method_name, space in PARAM_SEARCH_SPACE.items():
             config = {}
@@ -250,6 +358,41 @@ class BacktestEngine:
                 config[pname] = pvalues[rng.randint(0, len(pvalues))]
             sampled[method_name] = config
         return sampled
+
+    def _sample_params_perturbed(self, rng: np.random.RandomState,
+                                  base_params: Dict, perturb_ratio: float
+                                  ) -> Dict[str, Dict]:
+        """在基础参数上扰动：随机替换一定比例的参数值"""
+        import copy
+        new_params = copy.deepcopy(base_params)
+
+        # 收集所有可扰动的参数位置
+        all_params_flat = []
+        for method_name, space in PARAM_SEARCH_SPACE.items():
+            method_params = new_params.get(method_name, {})
+            for pname, pvalues in space.items():
+                all_params_flat.append((method_name, pname, pvalues))
+
+        # 随机选择要扰动的参数
+        n_perturb = max(1, int(len(all_params_flat) * perturb_ratio))
+        perturb_indices = rng.choice(
+            len(all_params_flat), n_perturb, replace=False)
+
+        for idx in perturb_indices:
+            method_name, pname, pvalues = all_params_flat[idx]
+            if method_name not in new_params:
+                new_params[method_name] = {}
+            # 随机选一个不同于当前值的新值
+            current = new_params[method_name].get(pname)
+            candidates = [v for v in pvalues if v != current]
+            if candidates:
+                new_params[method_name][pname] = candidates[
+                    rng.randint(0, len(candidates))]
+            else:
+                new_params[method_name][pname] = pvalues[
+                    rng.randint(0, len(pvalues))]
+
+        return new_params
 
     def _sample_weights(self, rng: np.random.RandomState) -> Dict[str, Dict]:
         """随机采样一组合并权重"""
@@ -266,33 +409,87 @@ class BacktestEngine:
 
         return {'method_weights': mw, 'granularity_weights': gw}
 
+    def _perturb_weights(self, rng: np.random.RandomState,
+                         base_weights: Dict, sigma: float = 0.15
+                         ) -> Dict[str, Dict]:
+        """在最优权重基础上加高斯噪声"""
+        mw = {}
+        for mk, w in base_weights.get('method_weights', {}).items():
+            noise = rng.normal(0, sigma)
+            mw[mk] = round(max(0.1, w + noise), 4)
+
+        gw = {}
+        for gn, w in base_weights.get('granularity_weights', {}).items():
+            noise = rng.normal(0, sigma)
+            gw[gn] = round(max(0.1, w + noise), 4)
+
+        return {'method_weights': mw, 'granularity_weights': gw}
+
+    def _determine_phase(self) -> str:
+        """确定当前搜索阶段"""
+        if self.max_search_time > 0:
+            elapsed = time.time() - self.start_time
+            if elapsed < self.max_search_time * self.phase_switch_ratio:
+                return 'exploration'
+        elif self.combo_counter < 50:
+            return 'exploration'
+        return 'convergence'
+
     def _generate_combo(self, rng: np.random.RandomState,
                         prefer_new: bool = True) -> Tuple[Dict, Dict, str]:
         """
-        生成一组(参数, 权重)组合，跳过已尝试过的。
+        智能生成一组(参数, 权重)组合。
 
-        参数:
-            rng: 随机数生成器
-            prefer_new: True则尽量生成新的组合，False则可能重复
+        阶段逻辑:
+        - exploration: 加权随机采样（基于历史表现分）
+        - convergence: 从Top-5中选一个，扰动参数+权重
+        - pulse: 每pulse_interval个组合，插入一次纯随机脉冲
 
         返回:
-            (params, weights, combo_hash)
+            (params, weights, combo_hash, phase_label)
         """
-        max_attempts = 1000
+        max_attempts = 500
+        self.phase = self._determine_phase()
+        phase_label = self.phase
+
         for _ in range(max_attempts):
-            params = self._sample_params(rng)
-            weights = self._sample_weights(rng)
+            # 随机脉冲：每N个组合做一次纯随机
+            if (self.combo_counter > 0 and
+                    self.combo_counter % self.pulse_interval == 0):
+                params = self._sample_params_random(rng)
+                weights = self._sample_weights(rng)
+                phase_label = 'pulse'
+            elif self.phase == 'exploration':
+                # 探索期：加权随机采样
+                params = self._sample_params_weighted(rng)
+                weights = self._sample_weights(rng)
+            else:
+                # 收敛期：基于Top-5微调
+                if self.top_combos and rng.random() < 0.85:
+                    # 85%概率：从最优组合开始微调
+                    base = self.top_combos[rng.randint(
+                        0, min(len(self.top_combos), 5))]
+                    perturb_ratio = self._get_perturb_ratio()
+                    params = self._sample_params_perturbed(
+                        rng, base['params'], perturb_ratio)
+                    weights = self._perturb_weights(
+                        rng, base['weights'], sigma=0.1)
+                else:
+                    # 15%概率：加权随机（保持探索）
+                    params = self._sample_params_weighted(rng)
+                    weights = self._sample_weights(rng)
+
             h = self._combo_hash(params, weights)
             if prefer_new and h not in self.tried_combos:
-                return params, weights, h
+                return params, weights, h, phase_label
             elif not prefer_new:
-                return params, weights, h
+                return params, weights, h, phase_label
 
-        # 实在生成不了新的，就用最后一次的
-        params = self._sample_params(rng)
+        # fallback
+        params = self._sample_params_random(rng)
         weights = self._sample_weights(rng)
         h = self._combo_hash(params, weights)
-        return params, weights, h
+        return params, weights, h, 'fallback'
 
     # ========================================================================
     #  核心评估：一组(参数+权重)在最新N期上的命中表现
@@ -481,38 +678,35 @@ class BacktestEngine:
                   f"{self.num_workers}线程并行")
         self._log(f"已记录{len(self.tried_combos)}组已尝试组合，将自动跳过")
 
-        # 生成初始组合池
+        # 生成初始组合池（预生成少量，后续按需生成）
         rng = np.random.RandomState(int(time.time() * 1000) % 10000)
-        combo_pool = []
+        combo_pool = []  # [(params, weights, h, cid, phase_label)]
         skipped = 0
 
-        # 预先生成一批组合
-        batch_size = 200
+        batch_size = 10  # 小批量让阶段切换更及时
         while len(combo_pool) < batch_size:
-            params, weights, h = self._generate_combo(rng, prefer_new=True)
+            params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=True)
             if h in self.tried_combos:
                 skipped += 1
-                # 如果太多被跳过，说明大部分组合都试过了，降低去重标准
-                if skipped > batch_size * 2:
-                    params, weights, h = self._generate_combo(rng, prefer_new=False)
-            combo_pool.append((params, weights, h, len(combo_pool)))
+                if skipped > batch_size * 3:
+                    params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=False)
+            combo_pool.append((params, weights, h, len(combo_pool), phase_lbl))
+            self.combo_counter += 1
 
         if skipped > 0:
             self._log(f"生成组合时跳过{skipped}组已尝试过的组合")
 
-        # 多线程并行评估（一次只提交少量，避免CPU竞争）
+        # 多线程并行评估
         combo_idx = 0
         batch_submitted = 0
         active_futures = {}
 
-        # 限制同时活跃的任务数
         max_concurrent = max(1, min(self.num_workers, 8))
+        self._phase_switched_at = self.combo_counter
 
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
 
-            # 持续提交+收集结果
             while self.running:
-                # 时间检查
                 if self.max_search_time > 0:
                     elapsed = time.time() - self.start_time
                     if elapsed > self.max_search_time:
@@ -521,37 +715,37 @@ class BacktestEngine:
                             f.cancel()
                         break
 
-                # 如果组合池不够，补充更多
+                # 按需补充组合池
                 if batch_submitted >= len(combo_pool):
-                    for _ in range(20):
-                        params, weights, h = self._generate_combo(rng, prefer_new=True)
+                    for _ in range(10):
+                        params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=True)
                         if h in self.tried_combos:
                             skipped += 1
-                        combo_pool.append((params, weights, h, len(combo_pool)))
+                        self.combo_counter += 1
+                        combo_pool.append((params, weights, h, len(combo_pool), phase_lbl))
 
-                # 提交新任务（使用实际的max_concurrent）
+                # 提交新任务
                 while (len(active_futures) < max_concurrent and
                        batch_submitted < len(combo_pool)):
-                    params, weights, h, cid = combo_pool[batch_submitted]
+                    params, weights, h, cid, phase_lbl = combo_pool[batch_submitted]
                     future = executor.submit(self.evaluate_combo, params, weights,
                                             seed=cid, combo_id=cid)
-                    active_futures[future] = (cid, h, params, weights)
+                    active_futures[future] = (cid, h, params, weights, phase_lbl)
                     batch_submitted += 1
 
                 if not active_futures:
                     if self.max_search_time == 0:
-                        break  # 不做定时限制且没有活跃任务
+                        break
                     time.sleep(0.5)
                     continue
 
-                # 等待任意一个完成（有超时）
                 try:
                     done = list(as_completed(active_futures, timeout=5.0))
                 except TimeoutError:
                     continue
 
                 for future in done:
-                    cid, h, params, weights = active_futures.pop(future)
+                    cid, h, params, weights, phase_lbl = active_futures.pop(future)
                     try:
                         result = future.result(timeout=5)
                     except Exception as e:
@@ -562,17 +756,49 @@ class BacktestEngine:
                         continue
 
                     # 记录结果
+                    score = result['avg_total_hits']
                     self.all_results.append(result)
-                    self.tried_combos[h] = result['avg_total_hits']
+                    self.tried_combos[h] = score
+
+                    # 更新智能搜索追踪
+                    self._update_param_performance(params, score)
+                    history_entry = {
+                        'combo_id': cid,
+                        'phase': phase_lbl,
+                        'avg_hits': round(score, 4),
+                        'max_hits': result['max_total_hits'],
+                        'hit_rate_5plus': round(result['hit_rate_5plus'], 4),
+                        'eval_time': result.get('evaluation_time', 0),
+                        'params_snapshot': {
+                            mk: {pk: pv for pk, pv in mp.items()}
+                            for mk, mp in params.items()
+                        },
+                        'weights_snapshot': {
+                            'method_weights': dict(weights.get('method_weights', {})),
+                            'granularity_weights': dict(weights.get('granularity_weights', {})),
+                        },
+                    }
+                    self.history_detail.append(history_entry)
+
+                    # 更新Top-10
+                    self.top_combos.append({
+                        'params': params, 'weights': weights,
+                        'avg_hits': score, 'combo_id': cid,
+                    })
+                    self.top_combos.sort(key=lambda x: x['avg_hits'], reverse=True)
+                    self.top_combos = self.top_combos[:10]
 
                     # 更新最佳
-                    if result['avg_total_hits'] > self.best_score:
-                        self.best_score = result['avg_total_hits']
+                    if score > self.best_score:
+                        self.best_score = score
                         self.best_combo = result
+                        phase_str = phase_lbl
+                        perturb = self._get_perturb_ratio()
                         self._log(
-                            f"★ 新最佳 #{cid}: 平均命中={result['avg_total_hits']:.3f}, "
+                            f"★ 新最佳 #{cid}[{phase_str}]: 平均命中={score:.3f}, "
                             f"最高={result['max_total_hits']}, "
                             f"5+率={result['hit_rate_5plus']:.1%}, "
+                            f"扰动率={perturb:.0%}, "
                             f"耗时={result['evaluation_time']:.0f}s")
 
                     combo_idx += 1
@@ -581,7 +807,7 @@ class BacktestEngine:
                     elapsed = time.time() - self.start_time
                     pct = min(95, (elapsed / self.max_search_time * 100)
                              if self.max_search_time > 0 else (combo_idx * 10))
-                    status = (f"已试{combo_idx}组, "
+                    status = (f"已试{combo_idx}组[{self.phase}], "
                              f"最佳={self.best_score:.3f}, "
                              f"耗时{elapsed:.0f}s")
                     self._progress(pct, status)
@@ -600,8 +826,9 @@ class BacktestEngine:
         total_time = time.time() - self.start_time
         self.running = False
 
-        # 保存去重日志
+        # 保存去重日志 + 历史详情
         self._save_tried_combos()
+        self._save_history_detail()
 
         if not self.best_combo:
             return {
@@ -610,8 +837,13 @@ class BacktestEngine:
                 'total_time': total_time,
             }
 
+        n_explore = sum(1 for h in self.history_detail if h['phase'] == 'exploration')
+        n_converge = sum(1 for h in self.history_detail if h['phase'] == 'convergence')
+        n_pulse = sum(1 for h in self.history_detail if h['phase'] == 'pulse')
+
         self._log(f"\n回测完成! 总耗时{total_time:.0f}秒, "
                   f"尝试{len(self.all_results)}组, 跳过{skipped}组已试")
+        self._log(f"阶段分布: 探索{n_explore} | 收敛{n_converge} | 脉冲{n_pulse}")
         self._log(f"最佳结果: 平均命中={self.best_score:.3f}, "
                   f"最高命中={self.best_combo['max_total_hits']}, "
                   f"5+命中率={self.best_combo['hit_rate_5plus']:.1%}")
@@ -627,6 +859,7 @@ class BacktestEngine:
             'total_combos_skipped': skipped,
             'total_time': total_time,
             'all_results': self.all_results,
+            'phase_stats': {'exploration': n_explore, 'convergence': n_converge, 'pulse': n_pulse},
         }
 
     def stop(self):
@@ -749,6 +982,32 @@ class BacktestEngine:
                     pd.DataFrame(combo_rows).sort_values(
                         '平均总命中', ascending=False).to_excel(
                         writer, sheet_name="所有组合", index=False)
+
+            # Sheet 4: 搜索历史详情（含阶段、参数、权重）
+            if self.history_detail:
+                history_rows = []
+                for h in self.history_detail:
+                    # 展平关键参数
+                    flat_params = {}
+                    for mk, mp in h.get('params_snapshot', {}).items():
+                        for pk, pv in mp.items():
+                            flat_params[f'{mk}.{pk}'] = pv
+                    row = {
+                        '组合ID': h.get('combo_id', 0),
+                        '阶段': h.get('phase', '?'),
+                        '平均命中': h.get('avg_hits', 0),
+                        '最高命中': h.get('max_hits', 0),
+                        '5+命中率': h.get('hit_rate_5plus', 0),
+                        '评估耗时(s)': h.get('eval_time', 0),
+                    }
+                    # 合并展平的参数
+                    row.update(flat_params)
+                    history_rows.append(row)
+                if history_rows:
+                    hist_df = pd.DataFrame(history_rows)
+                    hist_df = hist_df.sort_values('平均命中', ascending=False)
+                    hist_df.to_excel(
+                        writer, sheet_name="搜索历史", index=False)
 
         print(f"回测报告已保存: {fpath}")
         return fpath
