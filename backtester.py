@@ -693,11 +693,16 @@ class BacktestEngine:
                 'statistical': '方法1: 统计概率分析',
                 'timeseries': '方法2: 时间序列分析',
                 'pattern': '方法3: 模式识别分析',
-                'ml': '方法4: 机器学习分析',
+                'ml': '方法4: LightGBM',
                 'markov': '方法5: 马尔可夫分析',
                 'montecarlo': '方法6: 蒙特卡罗模拟',
                 'clustering': '方法7: 聚类分析',
                 'ngram': '方法8: N-gram分析',
+                'xgboost': '方法9: XGBoost',
+                'bayesian': '方法10: 贝叶斯推断',
+                'kalman': '方法11: 卡尔曼滤波',
+                'poisson': '方法12: 泊松回归',
+                'cooccurrence': '方法13: 共生矩阵分析',
             }
             for method_key, method_label in param_method_names.items():
                 method_params = params.get(method_key, {})

@@ -333,8 +333,8 @@ class LotterySystemGUI:
 
         # 创建各方法的结果Tab
         self.pred_tabs = {}
-        tab_names = ["综合推荐"] + [f"方法{i}: {METHOD_NAMES_NEW[f'method_{i}']}"
-                                 for i in range(1, 9)]
+        tab_names = ["综合推荐"] + [f"{METHOD_NAMES_NEW[f'method_{i}']}"
+                                 for i in range(1, 14)]
 
         for name in tab_names:
             frame = tk.Frame(self.pred_notebook, bg=self.colors['bg'])
@@ -721,17 +721,9 @@ class LotterySystemGUI:
         first_gran = list(all_results.keys())[0]
         results = all_results[first_gran]
 
-        tab_map = {
-            'comprehensive': '综合推荐',
-            'method_1': '方法1: 统计概率分析',
-            'method_2': '方法2: 时间序列分析',
-            'method_3': '方法3: 模式识别分析',
-            'method_4': '方法4: 机器学习分析',
-            'method_5': '方法5: 马尔可夫分析',
-            'method_6': '方法6: 蒙特卡罗模拟',
-            'method_7': '方法7: 聚类分析',
-            'method_8': '方法8: N-gram分析',
-        }
+        tab_map = {'comprehensive': '综合推荐'}
+        for mk, mname in METHOD_NAMES_NEW.items():
+            tab_map[mk] = mname
 
         for key, result in results.items():
             tab_name = tab_map.get(key, key)
@@ -965,11 +957,16 @@ class LotterySystemGUI:
                 'statistical': '方法1: 统计概率分析',
                 'timeseries': '方法2: 时间序列分析',
                 'pattern': '方法3: 模式识别分析',
-                'ml': '方法4: 机器学习分析',
+                'ml': '方法4: LightGBM',
                 'markov': '方法5: 马尔可夫分析',
                 'montecarlo': '方法6: 蒙特卡罗模拟',
                 'clustering': '方法7: 聚类分析',
                 'ngram': '方法8: N-gram分析',
+                'xgboost': '方法9: XGBoost',
+                'bayesian': '方法10: 贝叶斯推断',
+                'kalman': '方法11: 卡尔曼滤波',
+                'poisson': '方法12: 泊松回归',
+                'cooccurrence': '方法13: 共生矩阵分析',
             }
             for method_key, method_label in param_method_names.items():
                 method_params = params.get(method_key, {})
