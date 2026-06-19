@@ -717,58 +717,75 @@ class LotterySystemGUI:
         self._update_status("预测完成!")
         self._log(f"✓ 预测完成! 颗粒度: {list(all_results.keys())}", "success")
 
-        # 显示结果（取第一个颗粒度的结果作为示例展示）
-        first_gran = list(all_results.keys())[0]
-        results = all_results[first_gran]
-
+        # 显示所有颗粒度的结果（每个方法Tab内按颗粒度分段展示）
         tab_map = {'comprehensive': '综合推荐'}
         for mk, mname in METHOD_NAMES_NEW.items():
             tab_map[mk] = mname
 
-        for key, result in results.items():
-            tab_name = tab_map.get(key, key)
-            if tab_name in self.pred_tabs:
-                text_widget = self.pred_tabs[tab_name]
-                text_widget.delete(1.0, tk.END)
+        # 先清空所有Tab
+        for text_widget in self.pred_tabs.values():
+            text_widget.delete(1.0, tk.END)
+
+        # 按方法聚合：收集每个方法在各颗粒度下的结果
+        method_results = {}  # {tab_name: [(gran_name, result), ...]}
+        for gran_name, gran_results in all_results.items():
+            for key, result in gran_results.items():
+                tab_name = tab_map.get(key, key)
+                if tab_name not in method_results:
+                    method_results[tab_name] = []
+                method_results[tab_name].append((gran_name, result))
+
+        # 渲染每个Tab
+        for tab_name, gran_list in method_results.items():
+            if tab_name not in self.pred_tabs:
+                continue
+            text_widget = self.pred_tabs[tab_name]
+
+            # 取第一个有效结果显示方法描述
+            first_valid = None
+            for gn, r in gran_list:
+                if 'error' not in r:
+                    first_valid = r
+                    break
+            if first_valid:
+                text_widget.insert(tk.END, f"方法: {first_valid.get('method', '')}\n")
+                text_widget.insert(tk.END, f"描述: {first_valid.get('description', '')}\n\n")
+
+            # 逐个颗粒度显示
+            for gran_name, result in gran_list:
+                text_widget.insert(tk.END, f"━━━ [{gran_name}] ━━━\n")
 
                 if 'error' in result:
-                    text_widget.insert(tk.END, f"错误: {result['error']}\n", "error")
+                    text_widget.insert(tk.END, f"  错误: {result['error']}\n\n")
                     continue
 
-                text_widget.insert(tk.END, f"方法: {result.get('method', '')}\n")
-                text_widget.insert(tk.END, f"描述: {result.get('description', '')}\n")
-                text_widget.insert(tk.END, f"颗粒度: {first_gran}\n\n")
-
-                # 预测号码
                 pred = result.get('predictions', {})
                 if self.lottery_type == 'ssq':
                     reds = pred.get('red', [])
                     blues = pred.get('blue', [])
-                    text_widget.insert(tk.END, "━━━ 预测号码 ━━━\n")
                     text_widget.insert(tk.END,
-                        f"红球: {'  '.join(f'{n:02d}' for n in reds[:6])}\n")
+                        f"  红球: {'  '.join(f'{n:02d}' for n in reds[:6])}\n")
                     text_widget.insert(tk.END,
-                        f"蓝球: {'  '.join(f'{n:02d}' for n in blues[:1])}\n")
+                        f"  蓝球: {'  '.join(f'{n:02d}' for n in blues[:1])}\n")
                 else:
                     fronts = pred.get('front', [])
                     backs = pred.get('back', [])
-                    text_widget.insert(tk.END, "━━━ 预测号码 ━━━\n")
                     text_widget.insert(tk.END,
-                        f"前区: {'  '.join(f'{n:02d}' for n in fronts[:5])}\n")
+                        f"  前区: {'  '.join(f'{n:02d}' for n in fronts[:5])}\n")
                     text_widget.insert(tk.END,
-                        f"后区: {'  '.join(f'{n:02d}' for n in backs[:2])}\n")
+                        f"  后区: {'  '.join(f'{n:02d}' for n in backs[:2])}\n")
 
-                # 统计信息
-                if 'statistics' in result:
-                    text_widget.insert(tk.END, "\n━━━ 统计信息 ━━━\n")
-                    for k, v in result['statistics'].items():
-                        text_widget.insert(tk.END, f"  {k}: {v}\n")
-
-                # 模式信息
-                if 'patterns' in result:
-                    text_widget.insert(tk.END, "\n━━━ 模式识别 ━━━\n")
-                    for k, v in result['patterns'].items():
-                        text_widget.insert(tk.END, f"  {k}: {v}\n")
+                # 统计信息（只显示第一条，避免重复）
+                if gran_name == gran_list[0][0]:
+                    if 'statistics' in result:
+                        text_widget.insert(tk.END, "  [统计]\n")
+                        for k, v in result['statistics'].items():
+                            text_widget.insert(tk.END, f"    {k}: {v}\n")
+                    if 'patterns' in result:
+                        text_widget.insert(tk.END, "  [模式]\n")
+                        for k, v in result['patterns'].items():
+                            text_widget.insert(tk.END, f"    {k}: {v}\n")
+                text_widget.insert(tk.END, "\n")
 
         # 切换到预测Tab
         self.notebook.select(0)
@@ -1081,11 +1098,16 @@ class LotterySystemGUI:
             'statistical': '方法1: 统计概率分析',
             'timeseries': '方法2: 时间序列分析',
             'pattern': '方法3: 模式识别分析',
-            'ml': '方法4: 机器学习分析',
+            'ml': '方法4: LightGBM',
             'markov': '方法5: 马尔可夫分析',
             'montecarlo': '方法6: 蒙特卡罗模拟',
             'clustering': '方法7: 聚类分析',
             'ngram': '方法8: N-gram分析',
+            'xgboost': '方法9: XGBoost',
+            'bayesian': '方法10: 贝叶斯推断',
+            'kalman': '方法11: 卡尔曼滤波',
+            'poisson': '方法12: 泊松回归',
+            'cooccurrence': '方法13: 共生矩阵分析',
         }
         has_params = False
         for method_key, method_label in param_method_names.items():
