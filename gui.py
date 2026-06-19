@@ -102,11 +102,29 @@ class LotterySystemGUI:
         main_frame = tk.Frame(self.root, bg=self.colors['bg'])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
 
-        # 左侧：文件选择 + 控制面板
-        left_panel = tk.Frame(main_frame, bg=self.colors['card'], width=320,
+        # 左侧：文件选择 + 控制面板（可滚动）
+        left_outer = tk.Frame(main_frame, bg=self.colors['card'], width=320,
                              relief=tk.FLAT, bd=1)
-        left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-        left_panel.pack_propagate(False)
+        left_outer.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
+        left_outer.pack_propagate(False)
+
+        left_canvas = tk.Canvas(left_outer, bg=self.colors['card'],
+                               width=318, highlightthickness=0)
+        left_scroll = tk.Scrollbar(left_outer, orient=tk.VERTICAL,
+                                  command=left_canvas.yview)
+        left_panel = tk.Frame(left_canvas, bg=self.colors['card'])
+        left_panel.bind("<Configure>",
+            lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
+        left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW,
+                                 width=318)
+        left_canvas.configure(yscrollcommand=left_scroll.set)
+        left_canvas.pack(side=tk.LEFT, fill=tk.BOTH)
+        left_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 鼠标滚轮支持
+        def _on_mousewheel(event):
+            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # 右侧：Notebook (Tab区域)
         right_panel = tk.Frame(main_frame, bg=self.colors['bg'])
@@ -236,10 +254,19 @@ class LotterySystemGUI:
         method_frame.pack(fill=tk.X, padx=20, pady=2)
 
         self.method_vars = {}
-        for mk, mname in METHOD_NAMES_NEW.items():
+        # 2列布局，节省垂直空间（13个方法只需7行）
+        col_frame = [tk.Frame(method_frame, bg=self.colors['card']),
+                     tk.Frame(method_frame, bg=self.colors['card'])]
+        col_frame[0].pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
+        col_frame[1].pack(side=tk.LEFT, fill=tk.Y, padx=(5, 0))
+
+        methods_list = list(METHOD_NAMES_NEW.items())
+        half = (len(methods_list) + 1) // 2
+        for i, (mk, mname) in enumerate(methods_list):
+            col = 0 if i < half else 1
             var = tk.BooleanVar(value=True)
             self.method_vars[mk] = var
-            tk.Checkbutton(method_frame, text=mname, variable=var,
+            tk.Checkbutton(col_frame[col], text=mname, variable=var,
                           font=("Microsoft YaHei", 8),
                           bg=self.colors['card'],
                           activebackground=self.colors['card']).pack(anchor=tk.W)
