@@ -313,13 +313,13 @@ class BacktestEngine:
         return 1.0  # 新值默认权重
 
     def _get_perturb_ratio(self) -> float:
-        """根据当前最佳命中率动态调整扰动比例"""
+        """根据当前最佳命中率动态调整扰动比例（命中越高扰动越小）"""
         if self.best_score >= 5.0:
-            return 0.02   # 稳定在7中5: 扰动1个参数(~2%)
+            return 0.02   # 7中5: 扰动~1个参数，高度收敛
         elif self.best_score >= 4.0:
-            return 0.08   # 稳定在7中4: 扰动5个参数(~8%)
+            return 0.05   # 7中4: 扰动~3个参数
         elif self.best_score >= 3.0:
-            return 0.05   # 稳定在7中3: 扰动5%
+            return 0.08   # 7中3: 扰动~5个参数
         return self.perturb_ratio  # 默认20%
 
     # ========================================================================
