@@ -13,6 +13,41 @@
       "created": "2026-06-18 00:20:48",
       "description": "回测优化 (平均命中1.200, 0.0%命中5+)",
       "backtest_score": 1.2
+    },
+    {
+      "version": 3,
+      "filename": "model_params_v003_20260619_000433.json",
+      "created": "2026-06-19 00:04:33",
+      "description": "回测优化 (平均命中2.000, 0.0%命中5+)",
+      "backtest_score": 2.0
+    },
+    {
+      "version": 4,
+      "filename": "model_params_v004_20260619_144700.json",
+      "created": "2026-06-19 14:47:00",
+      "description": "回测优化 (平均命中1.000, 0.0%命中5+)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 5,
+      "filename": "model_params_v005_20260619_152400.json",
+      "created": "2026-06-19 15:24:00",
+      "description": "回测优化 (平均命中1.000, 0.0%命中5+)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 6,
+      "filename": "model_params_v006_20260619_154241.json",
+      "created": "2026-06-19 15:42:41",
+      "description": "应用回测最优组合 (平均命中1.000)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 7,
+      "filename": "model_params_v007_20260619_175952.json",
+      "created": "2026-06-19 17:59:52",
+      "description": "回测优化 (平均命中1.000, 0.0%命中5+)",
+      "backtest_score": 1.0
     }
   ],
   "weight_versions": [
@@ -29,6 +64,55 @@
       "created": "2026-06-18 00:20:48",
       "description": "回测优化权重 (平均命中1.200)",
       "backtest_score": 1.2
+    },
+    {
+      "version": 3,
+      "filename": "merge_weights_v003_20260619_000433.json",
+      "created": "2026-06-19 00:04:33",
+      "description": "回测优化权重 (平均命中2.000)",
+      "backtest_score": 2.0
+    },
+    {
+      "version": 4,
+      "filename": "merge_weights_v004_20260619_001121.json",
+      "created": "2026-06-19 00:11:21",
+      "description": "手动调整",
+      "backtest_score": 0.0
+    },
+    {
+      "version": 5,
+      "filename": "merge_weights_v005_20260619_001417.json",
+      "created": "2026-06-19 00:14:17",
+      "description": "手动调整",
+      "backtest_score": 0.0
+    },
+    {
+      "version": 6,
+      "filename": "merge_weights_v006_20260619_144700.json",
+      "created": "2026-06-19 14:47:00",
+      "description": "回测优化权重 (平均命中1.000)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 7,
+      "filename": "merge_weights_v007_20260619_152400.json",
+      "created": "2026-06-19 15:24:00",
+      "description": "回测优化权重 (平均命中1.000)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 8,
+      "filename": "merge_weights_v008_20260619_154241.json",
+      "created": "2026-06-19 15:42:41",
+      "description": "应用回测最优权重 (平均命中1.000)",
+      "backtest_score": 1.0
+    },
+    {
+      "version": 9,
+      "filename": "merge_weights_v009_20260619_175952.json",
+      "created": "2026-06-19 17:59:52",
+      "description": "回测优化权重 (平均命中1.000)",
+      "backtest_score": 1.0
     }
   ]
 }

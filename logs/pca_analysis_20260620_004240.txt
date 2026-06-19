@@ -1,0 +1,46 @@
+============================================================
+  PCA 参数自由度分析报告
+============================================================
+  彩票类型: SSQ
+  自由参数总数: 44
+  分析时间: 2026-06-20 00:42:40
+
+------------------------------------------------------------
+  2. 输出空间 PCA 分析
+------------------------------------------------------------
+  有效维度 (90%方差): 12
+  有效维度 (95%方差): 15
+  参数空间原始维度: 44
+  压缩比: 3.7:1
+
+  [TIP] 优化器选型建议:
+     有效维度适中(12)，标准 BO 可行
+     推荐: BO 为主，CMA-ES 为辅
+     可使用 Matern 核提升鲁棒性
+
+------------------------------------------------------------
+  3. 参数重要性排名 (Top-15)
+------------------------------------------------------------
+  排名    参数                                            影响力
+  -----------------------------------------------------
+  1     markov.base_freq_weight                    0.4558
+  2     timeseries.trend_bonus                     0.4191
+  3     timeseries.window_weights_short            0.4122
+  4     markov.transition_weight                   0.3824
+  5     statistical.cold_penalty                   0.3754
+  6     ngram.top_k_similar                        0.3656
+  7     timeseries.sum_tolerance                   0.3411
+  8     cooccurrence.window_size                   0.3327
+  9     pattern.prime_weight                       0.3287
+  10    pattern.zone_weight                        0.3170
+  11    kalman.measurement_noise                   0.3142
+  12    clustering.n_clusters_max                  0.3097
+  13    cooccurrence.mutual_weight                 0.3090
+  14    statistical.missing_weight                 0.3063
+  15    ngram.adjacent_weight                      0.3027
+
+  [TIP] 可固定为默认值的参数(影响力<0.05):
+     - clustering.n_clusters_min (影响力=0.0338)
+     - timeseries.sum_iterations (影响力=0.0000)
+
+============================================================
