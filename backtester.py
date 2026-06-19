@@ -37,6 +37,16 @@ from predictor import (
 )
 from merger import ResultMerger, GRANULARITY_NAMES, GRANULARITY_VALUES
 
+# 优化器模块（4.3+）
+try:
+    from optimizers.bo_surrogate import BOBridge
+    from optimizers.linear_weight_solver import LinearWeightSolver
+    OPTIMIZERS_AVAILABLE = True
+except ImportError:
+    OPTIMIZERS_AVAILABLE = False
+    BOBridge = None
+    LinearWeightSolver = None
+
 # ============================================================================
 #  参数 + 权重 联合搜索空间
 # ============================================================================
@@ -128,7 +138,7 @@ WEIGHT_SEARCH_SPACE = {
 # ============================================================================
 
 class BacktestEngine:
-    """回测与优化引擎 4.1"""
+    """回测与优化引擎 4.3"""
 
     def __init__(self):
         self.data_reverse = None       # 完整数据（倒序，index=0=最新）
@@ -144,6 +154,10 @@ class BacktestEngine:
         self.max_search_time = 0       # 最大搜索时间（秒），0=不限制
         self.num_workers = 4           # 并行线程数
         self.max_train_periods = 500   # 限制训练数据最多500期（加速ML）
+
+        # 优化器模式（4.3+）
+        self.use_bo = False            # 是否启用贝叶斯优化
+        self.bo_bridge = None          # BOBridge 实例
 
         # 已尝试组合去重
         self.tried_combos: Dict[str, float] = {}  # hash → best_score
@@ -222,6 +236,31 @@ class BacktestEngine:
         """设置进度和日志回调"""
         self.progress_callback = progress
         self.log_callback = log
+
+    def init_bo(self, mode: str = 'backtest'):
+        """
+        初始化贝叶斯优化器。
+
+        参数:
+          mode: 'backtest'（参数+权重联合优化）
+                或 'solve'（只优化参数，权重线性求解）
+
+        注意: 需要 OPTIMIZERS_AVAILABLE = True
+        """
+        if not OPTIMIZERS_AVAILABLE:
+            self._log("[BO] 优化器模块不可用，回退到随机搜索")
+            self.use_bo = False
+            return False
+
+        self.bo_bridge = BOBridge(
+            param_search_space=PARAM_SEARCH_SPACE,
+            weight_search_space=WEIGHT_SEARCH_SPACE,
+            mode=mode,
+        )
+        self.use_bo = True
+        self._log(f"[BO] 贝叶斯优化已初始化 (模式={mode}, "
+                  f"维度={self.bo_bridge.bo.encoder.n_free})")
+        return True
 
     # ========================================================================
     #  去重日志
@@ -447,14 +486,25 @@ class BacktestEngine:
         """
         智能生成一组(参数, 权重)组合。
 
-        阶段逻辑:
-        - exploration: 加权随机采样（基于历史表现分）
-        - convergence: 从Top-5中选一个，扰动参数+权重
-        - pulse: 每pulse_interval个组合，插入一次纯随机脉冲
+        BO模式: 用贝叶斯优化建议替代随机采样
+        随机模式（原3阶段策略）: exploration/convergence/pulse
 
         返回:
             (params, weights, combo_hash, phase_label)
         """
+        # BO 模式：用贝叶斯优化建议
+        if self.use_bo and self.bo_bridge is not None:
+            params, weights, phase_label = self.bo_bridge.suggest_combo()
+            h = self._combo_hash(params, weights)
+            # 如果已试过，回退到随机（极少发生）
+            if prefer_new and h in self.tried_combos:
+                params = self._sample_params_random(rng)
+                weights = self._sample_weights(rng)
+                h = self._combo_hash(params, weights)
+                phase_label = 'bo_fallback'
+            return params, weights, h, phase_label
+
+        # 原3阶段随机搜索（保留作为备用）
         max_attempts = 500
         self.phase = self._determine_phase()
         phase_label = self.phase
@@ -767,7 +817,11 @@ class BacktestEngine:
                     self.all_results.append(result)
                     self.tried_combos[h] = score
 
-                    # 更新智能搜索追踪
+                    # BO 更新（4.3+）
+                    if self.use_bo and self.bo_bridge is not None:
+                        self.bo_bridge.update(params, score)
+
+                    # 更新智能搜索追踪（BO模式下仍保留，用于日志/降级）
                     self._update_param_performance(params, score)
                     history_entry = {
                         'combo_id': cid,
@@ -1066,7 +1120,7 @@ class BacktestRunner:
 # ============================================================================
 
 class SolveEngine(BacktestEngine):
-    """求解模式引擎 — 找到所有满足容差条件的(参数,权重)组合"""
+    """求解模式引擎 4.3 — 找到所有满足容差条件的(参数,权重)组合"""
 
     def __init__(self):
         super().__init__()
@@ -1076,6 +1130,10 @@ class SolveEngine(BacktestEngine):
         self.solve_periods = 1       # 求解期数
         self._solution_hashes = set()  # 去重（避免重复收集同一组合）
         self._best_solve_score = 0.0  # 用于智能搜索引导
+
+        # 线性权重求解（4.3+）
+        self.weight_solver = None     # LinearWeightSolver 实例
+        self.use_linear_weights = False  # 是否用线性求解替代权重采样
 
     def set_solve_config(self, solve_periods: int = 1,
                          tolerance_main: int = 5,
@@ -1130,13 +1188,297 @@ class SolveEngine(BacktestEngine):
         avg_closeness = total_closeness / n_periods
         return all_pass, avg_closeness
 
+    # ------------------------------------------------------------------
+    #  线性权重求解集成（4.3+）
+    # ------------------------------------------------------------------
+
+    def _evaluate_params_only(self, params: Dict, seed: int = 0
+                               ) -> Tuple[List[List[Dict]], List[Tuple[List[int], List[int]]]]:
+        """
+        仅运行预测（不合并），返回每期各组合的原始预测。
+
+        返回:
+          all_period_predictions: [
+            [{method_key, granularity, predicted_main, predicted_aux}, ...],
+            ...每期一组...
+          ]
+          all_period_actuals: [(main_list, aux_list), ...]
+        """
+        import time as _time
+        actual_test_count = min(self.test_periods, self.total_periods - 10)
+        all_period_preds = []
+        all_period_actuals = []
+
+        for period_idx in range(actual_test_count):
+            # 注意: 不检查 self.running（此方法可能在 run() 外部调用）
+
+            # 训练数据
+            full_train = self.data_reverse.iloc[period_idx + 1:]
+            if len(full_train) < 20:
+                continue
+            train_data = full_train.head(
+                min(len(full_train), self.max_train_periods)).copy()
+
+            # 实际开奖号码
+            actual_row = self.data_reverse.iloc[period_idx]
+            if self.lottery_type == 'ssq':
+                actual_main = sorted([int(actual_row[f'red_{i}']) for i in range(1, 7)])
+                actual_aux = sorted([int(actual_row['blue'])])
+            else:
+                actual_main = sorted([int(actual_row[f'front_{i}']) for i in range(1, 6)])
+                actual_aux = sorted([int(actual_row[f'back_{i}']) for i in range(1, 3)])
+
+            all_period_actuals.append((actual_main, actual_aux))
+
+            # 各颗粒度预测
+            period_preds = []
+            for g_idx, gran in enumerate(self.granularities):
+                if gran > 0 and len(train_data) < gran:
+                    gran_data = train_data
+                elif gran > 0:
+                    gran_data = train_data.head(gran)
+                else:
+                    gran_data = train_data
+
+                if len(gran_data) < 10:
+                    continue
+
+                try:
+                    gran_name = self.gran_names[g_idx] if g_idx < len(self.gran_names) else f'{gran}期'
+                    gran_results = self.predictor.predict_all(
+                        gran_data, params=params,
+                        seed=seed + period_idx * 100 + g_idx)
+
+                    for mk, result in gran_results.items():
+                        if mk == 'comprehensive' or 'error' in result:
+                            continue
+                        pred = result.get('predictions', {})
+                        period_preds.append({
+                            'method_key': mk,
+                            'granularity': gran_name,
+                            'predicted_main': pred.get(self.predictor.main_name, []),
+                            'predicted_aux': pred.get(self.predictor.aux_name, []),
+                        })
+                except Exception:
+                    continue
+
+            all_period_preds.append(period_preds)
+
+        return all_period_preds, all_period_actuals
+
+    def _merge_with_weights(self, period_predictions: List[Dict],
+                             weights: Dict) -> Dict[str, List[int]]:
+        """用指定权重复制合并（不依赖 ResultMerger 的复杂约束逻辑）"""
+        from collections import defaultdict
+        method_w = weights.get('method_weights', {})
+        gran_w = weights.get('granularity_weights', {})
+
+        main_votes = defaultdict(float)
+        aux_votes = defaultdict(float)
+
+        for entry in period_predictions:
+            mk = entry['method_key']
+            gk = entry['granularity']
+            weight = method_w.get(mk, 1.0) * gran_w.get(gk, 1.0)
+
+            for n in entry.get('predicted_main', []):
+                main_votes[n] += weight
+            for n in entry.get('predicted_aux', []):
+                aux_votes[n] += weight
+
+        sorted_main = sorted(main_votes.items(), key=lambda x: x[1], reverse=True)
+        sorted_aux = sorted(aux_votes.items(), key=lambda x: x[1], reverse=True)
+
+        main_count = 6 if self.lottery_type == 'ssq' else 5
+        aux_count = 1 if self.lottery_type == 'ssq' else 2
+
+        return {
+            'main': sorted([n for n, _ in sorted_main[:main_count]]),
+            'aux': sorted([n for n, _ in sorted_aux[:aux_count]]),
+        }
+
     def run(self, num_combos_to_try: int = None) -> Dict[str, Any]:
         """
-        运行求解搜索。与回测类似的循环，但收集所有满足容差的解。
+        运行求解搜索。
+
+        支持两种模式:
+          - 随机模式（默认）: 3阶段智能搜索, params+weights一起采样
+          - BO+线性模式: BO找params, 线性求解weights (use_linear_weights=True)
         """
         if self.data_reverse is None:
             return {'success': False, 'error': '请先加载数据'}
 
+        # BO + 线性求解模式
+        if self.use_linear_weights and self.use_bo and self.bo_bridge is not None:
+            return self._run_bo_linear_solve(num_combos_to_try)
+
+        # 原随机模式（兼容）
+        return self._run_random_solve(num_combos_to_try)
+
+    def _run_bo_linear_solve(self, num_combos_to_try: int = None) -> Dict[str, Any]:
+        """
+        BO + 线性权重求解模式:
+          1. BO 建议模型参数（不含权重）
+          2. evaluate_params_only → 各期各组合的原始预测
+          3. LinearWeightSolver → 最优合并权重（NNLS）
+          4. 合并验证 → 检查容差 → 收集解
+        """
+        self.running = True
+        self.start_time = time.time()
+        self.solutions = []
+        self._solution_hashes = set()
+        self.best_score = -1.0
+        self.all_results = []
+        self._best_solve_score = 0.0
+
+        # 初始化线性权重求解器
+        if self.weight_solver is None:
+            self.weight_solver = LinearWeightSolver(self.lottery_type)
+
+        actual_test_count = min(self.solve_periods, self.total_periods - 10)
+        self._log(f"[BO+线性] 求解启动: 最新{actual_test_count}期, "
+                  f"容差=主{self.tolerance_main}/辅{self.tolerance_aux}, "
+                  f"上限={'不限' if self.max_search_time == 0 else f'{self.max_search_time}秒'}")
+
+        total_evaluated = 0
+        bo = self.bo_bridge.bo  # 底层 BOSuggestor
+
+        while self.running:
+            # 时间检查
+            if self.max_search_time > 0:
+                elapsed = time.time() - self.start_time
+                if elapsed > self.max_search_time:
+                    self._log(f"达到时间上限({self.max_search_time}秒)，停止搜索")
+                    break
+
+            # BO 建议模型参数（不含权重）
+            x = bo.suggest()
+            params = bo.encoder.decode(x)
+
+            # 评估：只做预测，不合并
+            all_period_preds, all_period_actuals = self._evaluate_params_only(
+                params, seed=total_evaluated)
+
+            if not all_period_preds or not all_period_actuals:
+                total_evaluated += 1
+                continue
+
+            # 线性求解最优权重
+            solve_result = self.weight_solver.solve_multi_period(
+                all_period_preds, all_period_actuals)
+
+            if 'error' in solve_result:
+                total_evaluated += 1
+                continue
+
+            optimal_weights = {
+                'method_weights': solve_result['method_weights'],
+                'granularity_weights': solve_result['granularity_weights'],
+            }
+
+            # 验证：用最优权重复制合并并计算命中
+            period_results = []
+            all_main_hits = []
+            all_aux_hits = []
+            all_total_hits = []
+
+            for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
+                    zip(all_period_preds, all_period_actuals)):
+                merged = self._merge_with_weights(period_preds, optimal_weights)
+                main_hits = len(set(merged['main']) & set(actual_main))
+                aux_hits = len(set(merged['aux']) & set(actual_aux))
+
+                period_results.append({
+                    'period_idx': p_idx,
+                    'merged_main': merged['main'],
+                    'merged_aux': merged['aux'],
+                    'actual_main': actual_main,
+                    'actual_aux': actual_aux,
+                    'main_hits': main_hits,
+                    'aux_hits': aux_hits,
+                    'total_hits': main_hits + aux_hits,
+                })
+                all_main_hits.append(main_hits)
+                all_aux_hits.append(aux_hits)
+                all_total_hits.append(main_hits + aux_hits)
+
+            if not period_results:
+                continue
+
+            avg_hits = np.mean(all_total_hits)
+            max_hits = max(all_total_hits)
+
+            result = {
+                'params': params,
+                'weights': optimal_weights,
+                'period_results': period_results,
+                'avg_total_hits': round(float(avg_hits), 4),
+                'max_total_hits': int(max_hits),
+            }
+
+            total_evaluated += 1
+            self.all_results.append(result)
+
+            # 检查是否为解
+            is_solution, closeness = self._check_solution(result)
+            combo_h = self._combo_hash(params, optimal_weights)
+
+            if is_solution and combo_h not in self._solution_hashes:
+                self._solution_hashes.add(combo_h)
+                self.solutions.append({
+                    'combo_id': total_evaluated,
+                    'params': params,
+                    'weights': optimal_weights,
+                    'combo_hash': combo_h,
+                    'period_results': period_results,
+                    'avg_total_hits': round(float(avg_hits), 4),
+                    'max_total_hits': int(max_hits),
+                    'solve_method': 'bo_linear',
+                })
+                self._log(
+                    f"★ 找到解 #{len(self.solutions)}! "
+                    f"#{total_evaluated} 平均={avg_hits:.3f}, "
+                    f"线性权重求解")
+
+            # BO 更新（用 closeness 作为目标）
+            solve_score = closeness if closeness > 0 else avg_hits / 7.0
+            bo.update(x, solve_score)
+
+            # 进度
+            elapsed = time.time() - self.start_time
+            pct = min(95, (elapsed / self.max_search_time * 100)
+                     if self.max_search_time > 0 else (total_evaluated * 10))
+            status = (f"[BO+线性] 已试{total_evaluated}组 | "
+                     f"找到{len(self.solutions)}个解 | "
+                     f"耗时{elapsed:.0f}s")
+            self._progress(pct, status)
+
+            if num_combos_to_try and total_evaluated >= num_combos_to_try:
+                break
+
+        total_time = time.time() - self.start_time
+        self.running = False
+
+        self._log(f"\n[BO+线性] 求解完成! 总耗时{total_time:.0f}秒, "
+                  f"评估{total_evaluated}组, 找到{len(self.solutions)}个解")
+
+        return {
+            'success': True,
+            'solutions': self.solutions,
+            'total_evaluated': total_evaluated,
+            'total_time': total_time,
+            'solve_method': 'bo_linear',
+            'solve_config': {
+                'periods': self.solve_periods,
+                'tolerance_main': self.tolerance_main,
+                'tolerance_aux': self.tolerance_aux,
+            },
+        }
+
+    def _run_random_solve(self, num_combos_to_try: int = None) -> Dict[str, Any]:
+        """
+        原随机搜索求解模式（保留作为备用）。
+        """
         self.running = True
         self.start_time = time.time()
         self.solutions = []
@@ -1151,8 +1493,6 @@ class SolveEngine(BacktestEngine):
                   f"时间上限={'不限' if self.max_search_time == 0 else f'{self.max_search_time}秒'}, "
                   f"{self.num_workers}线程并行")
         self._log(f"已记录{len(self.tried_combos)}组已尝试组合")
-
-        # 智能搜索：与回测相同的3阶段策略
         rng = np.random.RandomState(int(time.time() * 1000) % 10000)
         combo_pool = []
         skipped = 0
