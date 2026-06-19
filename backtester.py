@@ -41,11 +41,15 @@ from merger import ResultMerger, GRANULARITY_NAMES, GRANULARITY_VALUES
 try:
     from optimizers.bo_surrogate import BOBridge
     from optimizers.linear_weight_solver import LinearWeightSolver
+    from optimizers.cmaes_sampler import CMAESBridge
+    from optimizers.sa_sampler import SABridge
     OPTIMIZERS_AVAILABLE = True
 except ImportError:
     OPTIMIZERS_AVAILABLE = False
     BOBridge = None
     LinearWeightSolver = None
+    CMAESBridge = None
+    SABridge = None
 
 # ============================================================================
 #  参数 + 权重 联合搜索空间
@@ -158,6 +162,10 @@ class BacktestEngine:
         # 优化器模式（4.3+）
         self.use_bo = False            # 是否启用贝叶斯优化
         self.bo_bridge = None          # BOBridge 实例
+        self.use_cmaes = False         # 是否启用 CMA-ES
+        self.cmaes_bridge = None       # CMAESBridge 实例
+        self.use_sa = False            # 是否启用模拟退火
+        self.sa_bridge = None          # SABridge 实例
 
         # 已尝试组合去重
         self.tried_combos: Dict[str, float] = {}  # hash → best_score
@@ -260,6 +268,57 @@ class BacktestEngine:
         self.use_bo = True
         self._log(f"[BO] 贝叶斯优化已初始化 (模式={mode}, "
                   f"维度={self.bo_bridge.bo.encoder.n_free})")
+        return True
+
+    def init_cmaes(self, population_size: int = None, initial_sigma: float = 0.3):
+        """
+        初始化 CMA-ES 采样器。
+
+        参数:
+          population_size: 种群大小（默认自动: 4+3*ln(dim)）
+          initial_sigma: 初始步长
+        """
+        if not OPTIMIZERS_AVAILABLE:
+            self._log("[CMA-ES] 优化器模块不可用")
+            self.use_cmaes = False
+            return False
+
+        self.cmaes_bridge = CMAESBridge(
+            param_search_space=PARAM_SEARCH_SPACE,
+            population_size=population_size,
+            initial_sigma=initial_sigma,
+        )
+        self.use_cmaes = True
+        stats = self.cmaes_bridge.get_stats()
+        self._log(f"[CMA-ES] 已初始化 (维度={stats['dim']}, "
+                  f"种群={stats['population_size']})")
+        return True
+
+    def init_sa(self, n_chains: int = 4, T_max: float = 1.0,
+                cooling_rate: float = 0.95):
+        """
+        初始化模拟退火采样器。
+
+        参数:
+          n_chains: 并行链数
+          T_max: 初始温度
+          cooling_rate: 冷却率（0.90~0.99）
+        """
+        if not OPTIMIZERS_AVAILABLE:
+            self._log("[SA] 优化器模块不可用")
+            self.use_sa = False
+            return False
+
+        self.sa_bridge = SABridge(
+            param_search_space=PARAM_SEARCH_SPACE,
+            n_chains=n_chains,
+            T_max=T_max,
+            cooling_rate=cooling_rate,
+        )
+        self.use_sa = True
+        stats = self.sa_bridge.get_stats()
+        self._log(f"[SA] 已初始化 (维度={stats.get('n_active_chains', '?')}, "
+                  f"链数={n_chains})")
         return True
 
     # ========================================================================
@@ -496,12 +555,23 @@ class BacktestEngine:
         if self.use_bo and self.bo_bridge is not None:
             params, weights, phase_label = self.bo_bridge.suggest_combo()
             h = self._combo_hash(params, weights)
-            # 如果已试过，回退到随机（极少发生）
             if prefer_new and h in self.tried_combos:
                 params = self._sample_params_random(rng)
                 weights = self._sample_weights(rng)
                 h = self._combo_hash(params, weights)
                 phase_label = 'bo_fallback'
+            return params, weights, h, phase_label
+
+        # CMA-ES 模式：种群进化建议
+        if self.use_cmaes and self.cmaes_bridge is not None:
+            params, weights, phase_label = self.cmaes_bridge.suggest_combo()
+            h = self._combo_hash(params, weights)
+            return params, weights, h, phase_label
+
+        # SA 模式：多链退火建议
+        if self.use_sa and self.sa_bridge is not None:
+            params, weights, phase_label = self.sa_bridge.suggest_combo()
+            h = self._combo_hash(params, weights)
             return params, weights, h, phase_label
 
         # 原3阶段随机搜索（保留作为备用）
@@ -817,9 +887,13 @@ class BacktestEngine:
                     self.all_results.append(result)
                     self.tried_combos[h] = score
 
-                    # BO 更新（4.3+）
+                    # 优化器更新（4.3+）
                     if self.use_bo and self.bo_bridge is not None:
                         self.bo_bridge.update(params, score)
+                    if self.use_cmaes and self.cmaes_bridge is not None:
+                        self.cmaes_bridge.update(params, score)
+                    if self.use_sa and self.sa_bridge is not None:
+                        self.sa_bridge.update(params, score)
 
                     # 更新智能搜索追踪（BO模式下仍保留，用于日志/降级）
                     self._update_param_performance(params, score)
