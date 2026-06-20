@@ -1365,6 +1365,24 @@ class SolveWindow:
                     width=4, state="readonly", font=("Microsoft YaHei", 10)
                     ).pack(side=tk.LEFT, padx=5)
 
+        # 求解模式选择（4.3+）
+        row3 = tk.Frame(settings, bg=c['bg'])
+        row3.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Label(row3, text="求解模式:", font=("Microsoft YaHei", 10, "bold"),
+                bg=c['bg'], fg=c['primary']).pack(side=tk.LEFT)
+        self.solve_mode_var = tk.StringVar(value="BO+线性求解")
+        self.solve_mode_combo = ttk.Combobox(
+            row3, textvariable=self.solve_mode_var,
+            values=["BO+线性求解", "回测最优+求解"],
+            width=18, state="readonly", font=("Microsoft YaHei", 10))
+        self.solve_mode_combo.pack(side=tk.LEFT, padx=5)
+        self.solve_mode_combo.bind('<<ComboboxSelected>>', self._on_solve_mode_changed)
+
+        tk.Label(row3, text="(回测最优模式无需容差，直接输出结果)",
+                font=("Microsoft YaHei", 8), bg=c['bg'],
+                fg=c['text_light']).pack(side=tk.LEFT, padx=10)
+
         # 按钮
         btn_frame = tk.Frame(settings, bg=c['bg'])
         btn_frame.pack(fill=tk.X, padx=10, pady=8)
@@ -1425,6 +1443,22 @@ class SolveWindow:
         else:
             self.result_text.insert(tk.END, f"数据加载成功: {msg}\n")
 
+    def _on_solve_mode_changed(self, event=None):
+        """求解模式切换时的UI调整"""
+        mode = self.solve_mode_var.get()
+        if '回测最优' in mode:
+            # 回测最优模式不需要容差设置和长时间搜索
+            self.main_tol_var.set("—")
+            self.aux_tol_var.set("—")
+            self.time_var.set("1")  # 只需很短时间（单次预测+线性求解）
+        else:
+            # BO+求解模式恢复默认设置
+            if self.main_tol_var.get() == "—":
+                self.main_tol_var.set("5")
+            if self.aux_tol_var.get() == "—":
+                self.aux_tol_var.set("1")
+            self.time_var.set("5")
+
     def _log(self, msg: str):
         """添加日志"""
         ts = datetime.now().strftime("%H:%M:%S")
@@ -1434,12 +1468,35 @@ class SolveWindow:
     def _start_solve(self):
         """开始求解"""
         solve_periods = int(self.periods_var.get())
-        tol_main = int(self.main_tol_var.get())
-        tol_aux = int(self.aux_tol_var.get())
+
+        # 解析容差（回测最优模式不需要容差）
+        try:
+            tol_main = int(self.main_tol_var.get())
+            tol_aux = int(self.aux_tol_var.get())
+        except ValueError:
+            tol_main = 5
+            tol_aux = 1
+
         time_str = self.time_var.get()
         num_workers = int(self.worker_var.get())
 
         max_time = 0 if '不限' in time_str else int(time_str) * 60
+
+        # 确定求解模式
+        mode_selection = self.solve_mode_var.get()
+        if '回测最优' in mode_selection:
+            # 模式: 回测最优 + 线性求解
+            self.solve_engine.solve_mode = 'best_params'
+            # 此模式不需要 BO 初始化和 use_linear_weights
+            # 引擎内部会直接读取最优参数 + 线性求解
+        else:
+            # 模式: BO + 线性求解
+            self.solve_engine.solve_mode = 'bo_linear'
+            if OPTIMIZERS_AVAILABLE:
+                self.solve_engine.init_bo('solve')
+                self.solve_engine.use_linear_weights = True
+            else:
+                self.solve_engine.solve_mode = 'random'
 
         self.solve_engine.set_solve_config(
             solve_periods=solve_periods,
@@ -1449,13 +1506,6 @@ class SolveWindow:
             num_workers=num_workers,
         )
 
-        # 4.3+: 尝试启用 BO + 线性权重求解
-        solve_mode = 'random'  # 默认
-        if OPTIMIZERS_AVAILABLE:
-            self.solve_engine.init_bo('solve')
-            self.solve_engine.use_linear_weights = True
-            solve_mode = 'bo_linear'
-
         self.running = True
         self.solutions_found = 0
         self.btn_start.config(state=tk.DISABLED)
@@ -1463,12 +1513,23 @@ class SolveWindow:
         self.progress.start()
         self.status_label.config(text="求解中...")
 
+        # 日志
+        mode_labels = {
+            'best_params': '回测最优+线性求解',
+            'bo_linear': 'BO+线性求解',
+            'random': '随机搜索',
+        }
+        mode_label = mode_labels.get(self.solve_engine.solve_mode, '未知')
+
         self.result_text.delete(1.0, tk.END)
-        mode_label = 'BO+线性求解' if solve_mode == 'bo_linear' else '随机搜索'
-        self._log(f"求解启动 [{mode_label}]: 最新{solve_periods}期, "
-                 f"主球≥{tol_main}, 辅助球≥{tol_aux}, "
-                 f"时间={'不限' if max_time==0 else f'{max_time//60}分钟'}, "
-                 f"{num_workers}线程")
+        if self.solve_engine.solve_mode == 'best_params':
+            self._log(f"求解启动 [{mode_label}]: 最新{solve_periods}期, "
+                     f"固定回测最优参数 + 线性求解权重")
+        else:
+            self._log(f"求解启动 [{mode_label}]: 最新{solve_periods}期, "
+                     f"主球≥{tol_main}, 辅助球≥{tol_aux}, "
+                     f"时间={'不限' if max_time==0 else f'{max_time//60}分钟'}, "
+                     f"{num_workers}线程")
 
         def on_progress(pct, msg):
             self.win.after(0, lambda: self.status_label.config(text=msg))
@@ -1511,8 +1572,7 @@ class SolveWindow:
                 f"求解失败: {result.get('error', '未知错误')}\n")
             return
 
-        solutions = result.get('solutions', [])
-        total = result.get('total_evaluated', 0)
+        solve_mode = result.get('solve_mode', 'default')
         total_time = result.get('total_time', 0)
         cfg = result.get('solve_config', {})
 
@@ -1520,29 +1580,65 @@ class SolveWindow:
             "╔══════════════════════════════════╗\n"
             "║     求 解 结 果 报 告           ║\n"
             "╚══════════════════════════════════╝\n\n")
-        self.result_text.insert(tk.END,
-            f"求解期数: {cfg.get('periods', '?')}期\n"
-            f"容差条件: 主球≥{cfg.get('tolerance_main', '?')}, "
-            f"辅助球≥{cfg.get('tolerance_aux', '?')}\n"
-            f"总评估组合: {total}组\n"
-            f"找到解: {len(solutions)}个\n"
-            f"总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)\n\n")
 
-        if solutions:
+        # ── 回测最优 + 求解模式 ──
+        if solve_mode == 'best_params':
+            period_results = result.get('period_results', [])
+            avg_hits = result.get('avg_total_hits', 0)
+            max_hits = result.get('max_total_hits', 0)
+
             self.result_text.insert(tk.END,
-                f"━━━ 找到 {len(solutions)} 个有效解 ━━━\n\n")
-            for i, sol in enumerate(solutions):
-                self.result_text.insert(tk.END,
-                    f"【解 #{i+1}】 组合ID={sol['combo_id']} "
-                    f"平均命中={sol['avg_total_hits']:.3f} "
-                    f"最高={sol['max_total_hits']}\n")
+                f"求解模式: 回测最优 + 线性权重求解\n"
+                f"参数来源: {result.get('param_source', '?')}\n"
+                f"参数信息: {result.get('param_info', '?')}\n"
+                f"求解期数: {cfg.get('periods', '?')}期\n"
+                f"平均命中: {avg_hits:.3f}\n"
+                f"最高命中: {max_hits}\n"
+                f"总耗时: {total_time:.1f}秒\n\n")
+
+            if period_results:
+                self.result_text.insert(tk.END, "━━━ 每期预测详情 ━━━\n\n")
+                for pr in period_results:
+                    self.result_text.insert(tk.END,
+                        f"第{pr['period_num']}期:\n"
+                        f"  预测主球: {' '.join(f'{n:02d}' for n in pr['merged_main'])}\n"
+                        f"  实际主球: {' '.join(f'{n:02d}' for n in pr['actual_main'])}\n"
+                        f"  预测辅助: {' '.join(f'{n:02d}' for n in pr['merged_aux'])}\n"
+                        f"  实际辅助: {' '.join(f'{n:02d}' for n in pr['actual_aux'])}\n"
+                        f"  命中: 主球{pr['main_hits']}+辅助{pr['aux_hits']}"
+                        f"={pr['total_hits']}\n\n")
+
+            self.status_label.config(
+                text=f"完成! 平均命中={avg_hits:.3f}, 耗时{total_time:.0f}s")
+
+        # ── BO+求解 / 随机模式 ──
         else:
-            self.result_text.insert(tk.END,
-                "未找到满足容差条件的解。\n"
-                "建议: 降低容差条件或延长搜索时间。\n")
+            solutions = result.get('solutions', [])
+            total = result.get('total_evaluated', 0)
 
-        self.status_label.config(
-            text=f"完成! 找到{len(solutions)}个解, 耗时{total_time:.0f}s")
+            self.result_text.insert(tk.END,
+                f"求解期数: {cfg.get('periods', '?')}期\n"
+                f"容差条件: 主球≥{cfg.get('tolerance_main', '?')}, "
+                f"辅助球≥{cfg.get('tolerance_aux', '?')}\n"
+                f"总评估组合: {total}组\n"
+                f"找到解: {len(solutions)}个\n"
+                f"总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)\n\n")
+
+            if solutions:
+                self.result_text.insert(tk.END,
+                    f"━━━ 找到 {len(solutions)} 个有效解 ━━━\n\n")
+                for i, sol in enumerate(solutions):
+                    self.result_text.insert(tk.END,
+                        f"【解 #{i+1}】 组合ID={sol['combo_id']} "
+                        f"平均命中={sol['avg_total_hits']:.3f} "
+                        f"最高={sol['max_total_hits']}\n")
+            else:
+                self.result_text.insert(tk.END,
+                    "未找到满足容差条件的解。\n"
+                    "建议: 降低容差条件或延长搜索时间。\n")
+
+            self.status_label.config(
+                text=f"完成! 找到{len(solutions)}个解, 耗时{total_time:.0f}s")
 
 # ============================================================================
 #  入口

@@ -177,6 +177,10 @@ class BacktestEngine:
         self.best_period_results = []  # 每期详细命中
         self.all_results = []          # 所有组合的评估结果
 
+        # 最优参数持久化（供求解模式读取）
+        self.best_overall = None       # 全局最优 (最高 avg_hits)
+        self.best_recent = None        # 最新期最优 (period_idx=0 最高命中)
+
         # 智能搜索：参数表现追踪
         self.param_performance: Dict = {}  # {method: {param: {value: {count, total_score}}}}
         self.history_detail: List[Dict] = []  # 全部组合详情
@@ -392,6 +396,57 @@ class BacktestEngine:
                 }, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
+
+    def _save_best_params(self):
+        """保存回测最优参数（供求解模式读取）"""
+        best_file = os.path.join(os.path.dirname(self.tried_log_file),
+                                 "best_backtest_params.json")
+        os.makedirs(os.path.dirname(best_file), exist_ok=True)
+
+        # 加载已有记录（保留历史最优）
+        existing = {}
+        if os.path.exists(best_file):
+            try:
+                with open(best_file, 'r', encoding='utf-8') as f:
+                    existing = json.load(f)
+            except Exception:
+                pass
+
+        # 更新全局最优
+        if self.best_overall:
+            prev_best = existing.get('best_overall', {})
+            if self.best_overall['avg_hits'] >= prev_best.get('avg_hits', -999):
+                existing['best_overall'] = self.best_overall
+
+        # 更新最新期最优
+        if self.best_recent:
+            prev_recent = existing.get('best_recent', {})
+            if self.best_recent['total_hits'] >= prev_recent.get('total_hits', -999):
+                existing['best_recent'] = self.best_recent
+
+        existing['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        existing['lottery_type'] = self.lottery_type
+
+        try:
+            with open(best_file, 'w', encoding='utf-8') as f:
+                json.dump(existing, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    @staticmethod
+    def load_best_params(lottery_type: str = None) -> Dict:
+        """静态方法：加载回测最优参数"""
+        best_file = os.path.join("logs", "best_backtest_params.json")
+        if not os.path.exists(best_file):
+            return {}
+        try:
+            with open(best_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if lottery_type and data.get('lottery_type') != lottery_type:
+                return {}
+            return data
+        except Exception:
+            return {}
 
     def _update_param_performance(self, params: Dict, score: float):
         """更新参数表现追踪（加权采样依据）"""
@@ -923,10 +978,23 @@ class BacktestEngine:
                     self.top_combos.sort(key=lambda x: x['avg_hits'], reverse=True)
                     self.top_combos = self.top_combos[:10]
 
-                    # 更新最佳
+                    # 更新最佳（全局）
                     if score > self.best_score:
                         self.best_score = score
                         self.best_combo = result
+                        self.best_overall = {
+                            'params': {mk: dict(mp) for mk, mp in params.items()},
+                            'weights': {
+                                'method_weights': dict(weights.get('method_weights', {})),
+                                'granularity_weights': dict(weights.get('granularity_weights', {})),
+                            },
+                            'avg_hits': round(score, 4),
+                            'max_hits': result['max_total_hits'],
+                            'test_periods': len(result.get('period_results', [])),
+                            'combo_id': cid,
+                            'lottery_type': self.lottery_type,
+                            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        }
                         phase_str = phase_lbl
                         perturb = self._get_perturb_ratio()
                         self._log(
@@ -935,6 +1003,26 @@ class BacktestEngine:
                             f"5+率={result['hit_rate_5plus']:.1%}, "
                             f"扰动率={perturb:.0%}, "
                             f"耗时={result['evaluation_time']:.0f}s")
+
+                    # 追踪最新期（period_idx=0）的最高命中
+                    for pr in result.get('period_results', []):
+                        if pr['period_idx'] == 0:
+                            if (self.best_recent is None or
+                                    pr['total_hits'] > self.best_recent['total_hits']):
+                                self.best_recent = {
+                                    'params': {mk: dict(mp) for mk, mp in params.items()},
+                                    'weights': {
+                                        'method_weights': dict(weights.get('method_weights', {})),
+                                        'granularity_weights': dict(weights.get('granularity_weights', {})),
+                                    },
+                                    'total_hits': pr['total_hits'],
+                                    'main_hits': pr['main_hits'],
+                                    'aux_hits': pr['aux_hits'],
+                                    'combo_id': cid,
+                                    'lottery_type': self.lottery_type,
+                                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                }
+                            break
 
                     combo_idx += 1
 
@@ -961,9 +1049,10 @@ class BacktestEngine:
         total_time = time.time() - self.start_time
         self.running = False
 
-        # 保存去重日志 + 历史详情
+        # 保存去重日志 + 历史详情 + 最优参数
         self._save_tried_combos()
         self._save_history_detail()
+        self._save_best_params()
 
         if not self.best_combo:
             return {
@@ -1209,6 +1298,9 @@ class SolveEngine(BacktestEngine):
         self.weight_solver = None     # LinearWeightSolver 实例
         self.use_linear_weights = False  # 是否用线性求解替代权重采样
 
+        # 求解模式选择（4.3+）
+        self.solve_mode = 'bo_linear'  # 'bo_linear' | 'best_params' | 'random'
+
     def set_solve_config(self, solve_periods: int = 1,
                          tolerance_main: int = 5,
                          tolerance_aux: int = 1,
@@ -1375,18 +1467,30 @@ class SolveEngine(BacktestEngine):
         """
         运行求解搜索。
 
-        支持两种模式:
-          - 随机模式（默认）: 3阶段智能搜索, params+weights一起采样
-          - BO+线性模式: BO找params, 线性求解weights (use_linear_weights=True)
+        支持三种模式:
+          - best_params: 读取回测最优参数 → 固定参数 → 线性求解权重 → 直接输出
+          - bo_linear: BO搜索参数 + 线性求解权重（需 init_bo('solve') + use_linear_weights=True）
+          - random: 纯随机搜索（兼容旧版）
         """
         if self.data_reverse is None:
             return {'success': False, 'error': '请先加载数据'}
 
-        # BO + 线性求解模式
-        if self.use_linear_weights and self.use_bo and self.bo_bridge is not None:
-            return self._run_bo_linear_solve(num_combos_to_try)
+        # 模式1: 回测最优 + 线性求解（不需搜索，直接出结果）
+        if self.solve_mode == 'best_params':
+            return self._run_best_params_solve()
 
-        # 原随机模式（兼容）
+        # 模式2: BO + 线性求解
+        if self.solve_mode == 'bo_linear':
+            if self.use_linear_weights and self.use_bo and self.bo_bridge is not None:
+                return self._run_bo_linear_solve(num_combos_to_try)
+            # 降级：如果BO未初始化，自动初始化
+            if OPTIMIZERS_AVAILABLE and not self.use_bo:
+                self.init_bo('solve')
+                self.use_linear_weights = True
+                if self.bo_bridge is not None:
+                    return self._run_bo_linear_solve(num_combos_to_try)
+
+        # 模式3: 原随机模式（兼容/降级）
         return self._run_random_solve(num_combos_to_try)
 
     def _run_bo_linear_solve(self, num_combos_to_try: int = None) -> Dict[str, Any]:
@@ -1548,6 +1652,163 @@ class SolveEngine(BacktestEngine):
                 'tolerance_aux': self.tolerance_aux,
             },
         }
+
+    def _run_best_params_solve(self) -> Dict[str, Any]:
+        """
+        回测最优 + 线性求解模式:
+          1. 读取回测历史最优参数（固定不动）
+          2. 只用这组参数跑预测
+          3. 线性求解最优权重（NNLS）
+          4. 合并输出最终预测
+          5. 不检查容差，100% 有结果产出
+
+        优势:
+          - 参数质量随回测积累不断提升
+          - 每次求解都是"当前已知最优"
+          - 无迭代搜索，极快（单次评估 + 线性求解）
+        """
+        self.running = True
+        self.start_time = time.time()
+        self.solutions = []
+        self._solution_hashes = set()
+
+        # 1. 加载回测最优参数
+        best_data = BacktestEngine.load_best_params(self.lottery_type)
+
+        if not best_data:
+            total_time = time.time() - self.start_time
+            self.running = False
+            return {
+                'success': False,
+                'error': '没有找到回测最优参数。请先运行至少一次回测模式。',
+                'total_time': total_time,
+            }
+
+        # 优先用最新期最优，否则用全局最优
+        best_recent = best_data.get('best_recent')
+        best_overall = best_data.get('best_overall')
+
+        if best_recent:
+            best_params = best_recent['params']
+            param_source = 'best_recent'
+            param_info = (f"最新期命中={best_recent['total_hits']}"
+                        f"({best_recent['main_hits']}+{best_recent['aux_hits']})"
+                        f" @ combo#{best_recent['combo_id']}")
+        elif best_overall:
+            best_params = best_overall['params']
+            param_source = 'best_overall'
+            param_info = (f"平均命中={best_overall['avg_hits']}"
+                        f" @ combo#{best_overall['combo_id']}")
+        else:
+            total_time = time.time() - self.start_time
+            self.running = False
+            return {
+                'success': False,
+                'error': '回测最优参数数据不完整。请重新运行回测。',
+                'total_time': total_time,
+            }
+
+        actual_test_count = min(self.solve_periods, self.total_periods - 10)
+        self._log(f"[回测最优+求解] 参数来源: {param_source}")
+        self._log(f"  {param_info}")
+        self._log(f"  求解最新{actual_test_count}期, 固定参数 + 线性求解权重")
+
+        # 2. 初始化线性权重求解器
+        if self.weight_solver is None:
+            self.weight_solver = LinearWeightSolver(self.lottery_type)
+
+        # 3. 只用这组参数跑预测（不做合并）
+        all_period_preds, all_period_actuals = self._evaluate_params_only(
+            best_params, seed=0)
+
+        if not all_period_preds or not all_period_actuals:
+            total_time = time.time() - self.start_time
+            self.running = False
+            return {
+                'success': False,
+                'error': '预测阶段失败，无法生成候选号码。',
+                'total_time': total_time,
+            }
+
+        # 4. 线性求解最优权重
+        solve_result = self.weight_solver.solve_multi_period(
+            all_period_preds, all_period_actuals)
+
+        if 'error' in solve_result:
+            total_time = time.time() - self.start_time
+            self.running = False
+            return {
+                'success': False,
+                'error': f"线性权重求解失败: {solve_result['error']}",
+                'total_time': total_time,
+            }
+
+        optimal_weights = {
+            'method_weights': solve_result['method_weights'],
+            'granularity_weights': solve_result['granularity_weights'],
+        }
+
+        # 5. 用最优权重合并并计算命中
+        period_results = []
+        all_total_hits = []
+
+        for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
+                zip(all_period_preds, all_period_actuals)):
+            merged = self._merge_with_weights(period_preds, optimal_weights)
+            main_hits = len(set(merged['main']) & set(actual_main))
+            aux_hits = len(set(merged['aux']) & set(actual_aux))
+
+            period_results.append({
+                'period_idx': p_idx,
+                'period_num': self.total_periods - p_idx,
+                'merged_main': merged['main'],
+                'merged_aux': merged['aux'],
+                'actual_main': actual_main,
+                'actual_aux': actual_aux,
+                'main_hits': main_hits,
+                'aux_hits': aux_hits,
+                'total_hits': main_hits + aux_hits,
+            })
+            all_total_hits.append(main_hits + aux_hits)
+
+        avg_hits = np.mean(all_total_hits) if all_total_hits else 0
+        max_hits = max(all_total_hits) if all_total_hits else 0
+
+        total_time = time.time() - self.start_time
+        self.running = False
+
+        # 6. 组装结果（不检查容差，直接产出）
+        result = {
+            'success': True,
+            'solve_mode': 'best_params',
+            'param_source': param_source,
+            'param_info': param_info,
+            'best_params': best_params,
+            'optimal_weights': optimal_weights,
+            'period_results': period_results,
+            'avg_total_hits': round(float(avg_hits), 4),
+            'max_total_hits': int(max_hits),
+            'total_time': round(total_time, 1),
+            'solve_config': {
+                'periods': self.solve_periods,
+                'tolerance_main': self.tolerance_main,
+                'tolerance_aux': self.tolerance_aux,
+            },
+        }
+
+        self._log(f"\n[回测最优+求解] 完成! 耗时{total_time:.1f}秒")
+        self._log(f"  参数来源: {param_source}")
+        self._log(f"  平均命中={avg_hits:.3f}, 最高命中={max_hits}")
+
+        for pr in period_results:
+            self._log(f"  第{pr['period_num']}期: 预测主球={pr['merged_main']}, "
+                     f"辅助球={pr['merged_aux']}")
+            self._log(f"          实际主球={pr['actual_main']}, "
+                     f"辅助球={pr['actual_aux']}")
+            self._log(f"          命中: 主球{pr['main_hits']}+辅助{pr['aux_hits']}"
+                     f"={pr['total_hits']}")
+
+        return result
 
     def _run_random_solve(self, num_combos_to_try: int = None) -> Dict[str, Any]:
         """
