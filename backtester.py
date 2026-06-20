@@ -1732,29 +1732,36 @@ class SolveEngine(BacktestEngine):
                  f"每期 {len(all_period_preds[0]) if all_period_preds else 0} 组预测")
 
         # ════════════════════════════════════════════════════════
-        # 阶段 3: NNLS 反解权重（M × w ≈ t，t = 实际开奖号码）
+        # 阶段 3: 线性规划反解权重
+        #   约束: 每个实际号码得票 > 每个非实际号码得票
+        #   求解: scipy.optimize.linprog (HiGHS)
+        #   若不可行 → NNLS 降级
         # ════════════════════════════════════════════════════════
-        solve_result = self.weight_solver.solve_multi_period(
-            all_period_preds, all_period_actuals)
+        solve_result = self.weight_solver.solve_lp_multi_period(
+            all_period_preds, all_period_actuals, epsilon=0.01)
 
         if 'error' in solve_result:
             self.running = False
             return {
                 'success': False, 'solve_mode': 'best_params',
-                'error': f"线性权重求解失败: {solve_result['error']}",
+                'error': f"线性求解失败: {solve_result['error']}",
                 'total_time': time.time() - self.start_time,
             }
 
         solved_method_weights = solve_result['method_weights']
         solved_gran_weights = solve_result['granularity_weights']
-        residual = solve_result.get('residual', float('nan'))
+        lp_success = solve_result.get('lp_success', False)
+        lp_status = solve_result.get('lp_status', '?')
 
         optimal_weights = {
             'method_weights': solved_method_weights,
             'granularity_weights': solved_gran_weights,
         }
 
-        self._log(f"  NNLS 求解完成, 残差={residual:.6f}")
+        if lp_success:
+            self._log(f"  LP 精确求解完成, 约束数={solve_result.get('n_constraints', '?')}")
+        else:
+            self._log(f"  LP 不可行 → NNLS 降级 ({lp_status})")
 
         # ════════════════════════════════════════════════════════
         # 阶段 4: 验算 — 用反解的权重合并，必须与实际号码完全重合
@@ -1875,7 +1882,8 @@ class SolveEngine(BacktestEngine):
             # 元信息
             'param_source': param_source,
             'param_score': param_score,
-            'nnls_residual': float(residual),
+            'lp_success': lp_success,
+            'lp_status': str(lp_status),
             'total_time': round(total_time, 1),
             'solve_config': {
                 'periods': solve_periods,
@@ -1885,7 +1893,7 @@ class SolveEngine(BacktestEngine):
 
         self._log(f"\n[回测最优+求解] 完成! 耗时{total_time:.1f}秒")
         self._log(f"  参数来源: {param_source} | {param_score}")
-        self._log(f"  NNLS 残差: {residual:.6f}")
+        self._log(f"  求解方法: {'LP精确' if lp_success else 'NNLS降级'} ({lp_status})")
         self._log(f"  验算: {'[OK] 全部通过' if all_verified else '[FAIL] 存在不重合'}")
 
         return result

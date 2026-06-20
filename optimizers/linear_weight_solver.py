@@ -239,6 +239,258 @@ class LinearWeightSolver:
             'column_labels': col_labels,
         }
 
+    def solve_lp_multi_period(self,
+    all_period_predictions: List[List[Dict]],
+    all_period_actuals: List[Tuple[List[int], List[int]]],
+    epsilon: float = 0.01,
+    max_weight: float = 5.0,
+    ) -> Dict[str, Any]:
+        """
+        用线性规划精确求解权重，使得实际号码得票严格高于非实际号码。
+
+        问题形式化:
+          对每个实际号码 a 和非实际号码 b:
+            vote[a] - vote[b] >= epsilon
+            → Σ_j (X[a,j] - X[b,j]) × w_j >= epsilon
+
+          min  Σ_j w_j
+          s.t. (X[b,:] - X[a,:]) · w <= -epsilon  (对所有 a∈actual, b∉actual)
+               0 <= w_j <= max_weight
+
+        相比 NNLS 的优势:
+          NNLS 最小化均方误差，不保证排序正确。
+          LP 直接约束"每个实际号码排前k"，保证验算100%通过（如果可行解存在）。
+
+        参数:
+          all_period_predictions: 每期的预测列表
+          all_period_actuals: 每期的实际开奖号码
+          epsilon: 最小胜出票差（防止平票），默认0.01
+          max_weight: 单权重上限（防无穷大），默认5.0
+
+        返回:
+          同 solve_multi_period，额外包含 lp_status
+        """
+        from scipy.optimize import linprog
+
+        if not all_period_predictions:
+            return {'error': '无预测数据'}
+
+        n_periods = len(all_period_predictions)
+
+        # 收集所有列标签（确保各期对齐）
+        all_col_labels = set()
+        for period_preds in all_period_predictions:
+            for entry in period_preds:
+                all_col_labels.add(
+                    f"{entry['method_key']}@{entry['granularity']}")
+        col_labels = sorted(all_col_labels)
+        n_cols = len(col_labels)
+
+        if n_cols == 0:
+            return {'error': '无有效预测组'}
+
+        # 构建所有约束
+        A_ub_rows = []  # 不等式约束矩阵
+        b_ub_vals = []  # 不等式约束右侧
+
+        for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
+                zip(all_period_predictions, all_period_actuals)):
+
+            X_main, X_aux, p_col_labels, main_rows, aux_rows = \
+                self._build_design_matrix(period_preds)
+
+            # 对齐列
+            X_main_aligned = np.zeros((X_main.shape[0], n_cols))
+            X_aux_aligned = np.zeros((X_aux.shape[0], n_cols))
+            for j_old, label in enumerate(p_col_labels):
+                j_new = col_labels.index(label) if label in col_labels else -1
+                if j_new >= 0:
+                    X_main_aligned[:, j_new] = X_main[:, j_old]
+                    X_aux_aligned[:, j_new] = X_aux[:, j_old]
+
+            # ── 主球约束: 每个实际号码 vs 每个非实际号码 ──
+            actual_main_indices = []
+            for num in actual_main:
+                if self.main_range[0] <= num <= self.main_range[1]:
+                    actual_main_indices.append(num - self.main_range[0])
+
+            non_actual_main_indices = [
+                i for i in range(self.n_main_candidates)
+                if i not in actual_main_indices
+            ]
+
+            for a_idx in actual_main_indices:
+                for b_idx in non_actual_main_indices:
+                    # 约束: (X[b,:] - X[a,:]) · w <= -epsilon
+                    constraint_row = X_main_aligned[b_idx, :] - X_main_aligned[a_idx, :]
+                    A_ub_rows.append(constraint_row)
+                    b_ub_vals.append(-epsilon)
+
+            # ── 辅助球约束: 每个实际号码 vs 每个非实际号码 ──
+            actual_aux_indices = []
+            for num in actual_aux:
+                if self.aux_range[0] <= num <= self.aux_range[1]:
+                    actual_aux_indices.append(num - self.aux_range[0])
+
+            non_actual_aux_indices = [
+                i for i in range(self.n_aux_candidates)
+                if i not in actual_aux_indices
+            ]
+
+            for a_idx in actual_aux_indices:
+                for b_idx in non_actual_aux_indices:
+                    constraint_row = X_aux_aligned[b_idx, :] - X_aux_aligned[a_idx, :]
+                    A_ub_rows.append(constraint_row)
+                    b_ub_vals.append(-epsilon)
+
+        if not A_ub_rows:
+            return {'error': '无有效约束（实际号码为空或覆盖所有候选）'}
+
+        A_ub = np.array(A_ub_rows, dtype=float)
+        b_ub = np.array(b_ub_vals, dtype=float)
+
+        # 目标函数: 最小化权重和（正则化）
+        c = np.ones(n_cols, dtype=float)
+
+        # 边界: 0 <= w <= max_weight
+        bounds = [(0, max_weight) for _ in range(n_cols)]
+
+        # 求解
+        result = linprog(
+            c, A_ub=A_ub, b_ub=b_ub,
+            bounds=bounds,
+            method='highs',  # HiGHS 求解器（scipy 1.6+）
+            options={'maxiter': 5000},
+        )
+
+        if result.success:
+            w_full = result.x
+            # 归一化
+            w_sum = w_full.sum()
+            if w_sum > 1e-10:
+                w_full = w_full / w_sum
+        else:
+            # LP 不可行 → 用 NNLS 作为降级方案
+            return self._nnls_fallback(
+                all_period_predictions, all_period_actuals,
+                col_labels, lp_status=result.message)
+
+        # 分解权重
+        method_weights, gran_weights = self._decompose_weights(
+            w_full, all_period_predictions[0], col_labels)
+
+        return {
+            'composite_weights': w_full.tolist(),
+            'method_weights': method_weights,
+            'granularity_weights': gran_weights,
+            'residual': 0.0,  # LP 精确求解，无残差
+            'lp_success': True,
+            'lp_status': result.message,
+            'column_labels': col_labels,
+            'n_periods': n_periods,
+            'n_constraints': len(A_ub_rows),
+        }
+
+    def _nnls_fallback(self,
+                       all_period_predictions: List[List[Dict]],
+                       all_period_actuals: List[Tuple[List[int], List[int]]],
+                       col_labels: List[str],
+                       lp_status: str = 'unknown'
+                       ) -> Dict[str, Any]:
+        """LP 不可行时的 NNLS 降级方案，附带诊断信息"""
+        from scipy.optimize import nnls
+
+        n_periods = len(all_period_predictions)
+
+        # 诊断: 找出未被任何方法覆盖的实际号码
+        uncovered_main = set()
+        uncovered_aux = set()
+
+        for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
+                zip(all_period_predictions, all_period_actuals)):
+
+            all_predicted_main = set()
+            all_predicted_aux = set()
+            for entry in period_preds:
+                all_predicted_main.update(entry.get('predicted_main', []))
+                all_predicted_aux.update(entry.get('predicted_aux', []))
+
+            for a in actual_main:
+                if a not in all_predicted_main:
+                    uncovered_main.add(a)
+            for a in actual_aux:
+                if a not in all_predicted_aux:
+                    uncovered_aux.add(a)
+
+        # NNLS 求解（原有逻辑）
+        X_blocks = []
+        t_blocks = []
+
+        for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
+                zip(all_period_predictions, all_period_actuals)):
+
+            X_main, X_aux, p_col_labels, _, _ = self._build_design_matrix(
+                period_preds)
+            t_main, t_aux = self._build_target_vector(actual_main, actual_aux)
+            X_p = np.vstack([X_main, X_aux])
+            t_p = np.concatenate([t_main, t_aux])
+
+            X_p_aligned = np.zeros((X_p.shape[0], len(col_labels)))
+            for j_old, label in enumerate(p_col_labels):
+                j_new = col_labels.index(label) if label in col_labels else -1
+                if j_new >= 0:
+                    X_p_aligned[:, j_new] = X_p[:, j_old]
+
+            X_blocks.append(X_p_aligned)
+            t_blocks.append(t_p)
+
+        X = np.vstack(X_blocks)
+        t = np.concatenate(t_blocks)
+
+        col_sums = X.sum(axis=0)
+        valid_cols = col_sums > 0
+        if not valid_cols.any():
+            return {'error': '所有列均为零'}
+        if not valid_cols.all():
+            X = X[:, valid_cols]
+
+        w_valid, residual = nnls(X, t)
+
+        if not valid_cols.all():
+            w_full = np.zeros(len(col_labels))
+            valid_indices = np.where(valid_cols)[0]
+            for i, wi in zip(valid_indices, w_valid):
+                w_full[i] = wi
+        else:
+            w_full = w_valid
+
+        w_sum = w_full.sum()
+        if w_sum > 1e-10:
+            w_full = w_full / w_sum
+
+        method_weights, gran_weights = self._decompose_weights(
+            w_full, all_period_predictions[0], col_labels)
+
+        return {
+            'composite_weights': w_full.tolist(),
+            'method_weights': method_weights,
+            'granularity_weights': gran_weights,
+            'residual': float(residual),
+            'lp_success': False,
+            'lp_status': 'LP不可行(参数未覆盖实际号码) → 已降级为NNLS近似解',
+            'lp_diagnostic': {
+                'uncovered_main': sorted(list(uncovered_main)),
+                'uncovered_aux': sorted(list(uncovered_aux)),
+                'is_infeasible': True,
+                'advice': ('以下实际号码未被任何方法预测到，'
+                          '请增加回测运行时间以优化模型参数: '
+                          + (f'主球={sorted(list(uncovered_main))} ' if uncovered_main else '')
+                          + (f'辅助球={sorted(list(uncovered_aux))}' if uncovered_aux else '')) if (uncovered_main or uncovered_aux) else '',
+            },
+            'column_labels': col_labels,
+            'n_periods': n_periods,
+        }
+
     def solve_multi_period(self,
                             all_period_predictions: List[List[Dict]],
                             all_period_actuals: List[Tuple[List[int], List[int]]],

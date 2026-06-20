@@ -1594,15 +1594,37 @@ class SolveWindow:
         verification = result.get('verification', {})
         all_verified = verification.get('all_verified', False)
         prediction = result.get('prediction')
-        nnls_residual = result.get('nnls_residual', float('nan'))
+        lp_success = result.get('lp_success', False)
+        lp_status = result.get('lp_status', '?')
 
         # ── 头信息 ──
+        solver_label = 'LP精确求解' if lp_success else 'NNLS降级(近似解)'
         self.result_text.insert(tk.END,
             f"求解模式: 回测最优 + 线性权重求解\n"
+            f"求解方法: {solver_label}\n"
+            f"求解状态: {lp_status}\n"
             f"参数来源: {result.get('param_source', '?')}\n"
             f"参数评分: {result.get('param_score', '?')}\n"
-            f"NNLS 残差: {nnls_residual:.6f}\n"
             f"总耗时: {total_time:.1f}秒\n\n")
+
+        # LP 不可行时的诊断
+        lp_diag = result.get('lp_diagnostic', {})
+        if lp_diag.get('is_infeasible'):
+            uncovered_m = lp_diag.get('uncovered_main', [])
+            uncovered_a = lp_diag.get('uncovered_aux', [])
+            if uncovered_m or uncovered_a:
+                self.result_text.insert(tk.END,
+                    "━━━ 诊断：LP为何不可行 ━━━\n\n"
+                    "以下实际号码未被任何方法预测到（参数质量不足）:\n")
+                if uncovered_m:
+                    self.result_text.insert(tk.END,
+                        f"  主球未覆盖: {' '.join(f'{n:02d}' for n in uncovered_m)}\n")
+                if uncovered_a:
+                    self.result_text.insert(tk.END,
+                        f"  辅助球未覆盖: {' '.join(f'{n:02d}' for n in uncovered_a)}\n")
+                self.result_text.insert(tk.END,
+                    "\n  → 请增加回测运行时间以优化模型参数。\n"
+                    "  → 参数优化后，这些号码被方法覆盖，LP即可精确求解。\n\n")
 
         # ── ★ 核心产出: 方法权重 ──
         method_weights = result.get('method_weights', {})
