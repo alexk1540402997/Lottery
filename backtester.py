@@ -1655,158 +1655,238 @@ class SolveEngine(BacktestEngine):
 
     def _run_best_params_solve(self) -> Dict[str, Any]:
         """
-        回测最优 + 线性求解模式:
-          1. 读取回测历史最优参数（固定不动）
-          2. 只用这组参数跑预测
-          3. 线性求解最优权重（NNLS）
-          4. 合并输出最终预测
-          5. 不检查容差，100% 有结果产出
+        回测最优 + 线性求解模式（反解权重配方）:
 
-        优势:
-          - 参数质量随回测积累不断提升
-          - 每次求解都是"当前已知最优"
-          - 无迭代搜索，极快（单次评估 + 线性求解）
+        ┌─────────────────────────────────────────────────────┐
+        │ 1. 固定参数 = 回测历史最优                            │
+        │ 2. 给定答案 = 最新一期实际开奖号码（作为约束条件）        │
+        │ 3. NNLS 反解 → 方法权重 + 颗粒度权重                   │
+        │ 4. 验算：用反解的权重合并 → 是否完全重合实际号码？       │
+        │ 5. 预测：用同样的(参数, 权重)预测未开奖的最新一期        │
+        │                                                      │
+        │ 输出核心: 模型参数 + 方法权重 + 颗粒度权重               │
+        │           + 验算结果(是否完全重合) + 下一期预测          │
+        └─────────────────────────────────────────────────────┘
         """
         self.running = True
         self.start_time = time.time()
-        self.solutions = []
-        self._solution_hashes = set()
 
-        # 1. 加载回测最优参数
+        # ════════════════════════════════════════════════════════
+        # 阶段 1: 加载回测最优参数（固定不动）
+        # ════════════════════════════════════════════════════════
         best_data = BacktestEngine.load_best_params(self.lottery_type)
 
         if not best_data:
-            total_time = time.time() - self.start_time
             self.running = False
             return {
-                'success': False,
+                'success': False, 'solve_mode': 'best_params',
                 'error': '没有找到回测最优参数。请先运行至少一次回测模式。',
-                'total_time': total_time,
+                'total_time': time.time() - self.start_time,
             }
 
-        # 优先用最新期最优，否则用全局最优
+        # 优先用最新期最优 → 全局最优
         best_recent = best_data.get('best_recent')
         best_overall = best_data.get('best_overall')
 
         if best_recent:
             best_params = best_recent['params']
             param_source = 'best_recent'
-            param_info = (f"最新期命中={best_recent['total_hits']}"
-                        f"({best_recent['main_hits']}+{best_recent['aux_hits']})"
-                        f" @ combo#{best_recent['combo_id']}")
+            param_score = (f"最新期命中={best_recent['total_hits']}"
+                          f"({best_recent['main_hits']}主+{best_recent['aux_hits']}辅)"
+                          f" @ combo#{best_recent['combo_id']}")
         elif best_overall:
             best_params = best_overall['params']
             param_source = 'best_overall'
-            param_info = (f"平均命中={best_overall['avg_hits']}"
-                        f" @ combo#{best_overall['combo_id']}")
+            param_score = (f"平均命中={best_overall['avg_hits']}"
+                          f" @ combo#{best_overall['combo_id']}")
         else:
-            total_time = time.time() - self.start_time
             self.running = False
             return {
-                'success': False,
+                'success': False, 'solve_mode': 'best_params',
                 'error': '回测最优参数数据不完整。请重新运行回测。',
-                'total_time': total_time,
+                'total_time': time.time() - self.start_time,
             }
 
-        actual_test_count = min(self.solve_periods, self.total_periods - 10)
-        self._log(f"[回测最优+求解] 参数来源: {param_source}")
-        self._log(f"  {param_info}")
-        self._log(f"  求解最新{actual_test_count}期, 固定参数 + 线性求解权重")
+        self._log(f"[回测最优+求解] 参数来源: {param_source} | {param_score}")
 
-        # 2. 初始化线性权重求解器
+        # ════════════════════════════════════════════════════════
+        # 阶段 2: 固定参数 → 对最新一期跑预测（获取投票矩阵 M）
+        # ════════════════════════════════════════════════════════
         if self.weight_solver is None:
             self.weight_solver = LinearWeightSolver(self.lottery_type)
 
-        # 3. 只用这组参数跑预测（不做合并）
+        # 只求解最新已开奖的1期（period_idx=0）
+        solve_periods = min(self.solve_periods, self.total_periods - 10)
         all_period_preds, all_period_actuals = self._evaluate_params_only(
             best_params, seed=0)
 
         if not all_period_preds or not all_period_actuals:
-            total_time = time.time() - self.start_time
             self.running = False
             return {
-                'success': False,
-                'error': '预测阶段失败，无法生成候选号码。',
-                'total_time': total_time,
+                'success': False, 'solve_mode': 'best_params',
+                'error': '预测阶段失败，无法生成投票矩阵。',
+                'total_time': time.time() - self.start_time,
             }
 
-        # 4. 线性求解最优权重
+        self._log(f"  已获取 {len(all_period_preds)} 期投票矩阵, "
+                 f"每期 {len(all_period_preds[0]) if all_period_preds else 0} 组预测")
+
+        # ════════════════════════════════════════════════════════
+        # 阶段 3: NNLS 反解权重（M × w ≈ t，t = 实际开奖号码）
+        # ════════════════════════════════════════════════════════
         solve_result = self.weight_solver.solve_multi_period(
             all_period_preds, all_period_actuals)
 
         if 'error' in solve_result:
-            total_time = time.time() - self.start_time
             self.running = False
             return {
-                'success': False,
+                'success': False, 'solve_mode': 'best_params',
                 'error': f"线性权重求解失败: {solve_result['error']}",
-                'total_time': total_time,
+                'total_time': time.time() - self.start_time,
             }
 
+        solved_method_weights = solve_result['method_weights']
+        solved_gran_weights = solve_result['granularity_weights']
+        residual = solve_result.get('residual', float('nan'))
+
         optimal_weights = {
-            'method_weights': solve_result['method_weights'],
-            'granularity_weights': solve_result['granularity_weights'],
+            'method_weights': solved_method_weights,
+            'granularity_weights': solved_gran_weights,
         }
 
-        # 5. 用最优权重合并并计算命中
-        period_results = []
-        all_total_hits = []
+        self._log(f"  NNLS 求解完成, 残差={residual:.6f}")
+
+        # ════════════════════════════════════════════════════════
+        # 阶段 4: 验算 — 用反解的权重合并，必须与实际号码完全重合
+        # ════════════════════════════════════════════════════════
+        verification_results = []
+        all_verified = True
 
         for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
                 zip(all_period_preds, all_period_actuals)):
             merged = self._merge_with_weights(period_preds, optimal_weights)
-            main_hits = len(set(merged['main']) & set(actual_main))
-            aux_hits = len(set(merged['aux']) & set(actual_aux))
 
-            period_results.append({
+            main_match = set(merged['main']) == set(actual_main)
+            aux_match = set(merged['aux']) == set(actual_aux)
+            all_match = main_match and aux_match
+
+            verification_results.append({
                 'period_idx': p_idx,
                 'period_num': self.total_periods - p_idx,
                 'merged_main': merged['main'],
-                'merged_aux': merged['aux'],
                 'actual_main': actual_main,
+                'merged_aux': merged['aux'],
                 'actual_aux': actual_aux,
-                'main_hits': main_hits,
-                'aux_hits': aux_hits,
-                'total_hits': main_hits + aux_hits,
+                'main_match': main_match,
+                'aux_match': aux_match,
+                'all_match': all_match,
+                'main_hits': len(set(merged['main']) & set(actual_main)),
+                'aux_hits': len(set(merged['aux']) & set(actual_aux)),
             })
-            all_total_hits.append(main_hits + aux_hits)
 
-        avg_hits = np.mean(all_total_hits) if all_total_hits else 0
-        max_hits = max(all_total_hits) if all_total_hits else 0
+            if not all_match:
+                all_verified = False
 
+            status = '[OK] 完全重合' if all_match else '[FAIL] 未完全重合'
+            self._log(f"  验算第{self.total_periods - p_idx}期: {status}")
+            if not all_match:
+                self._log(f"    合并主球={merged['main']}")
+                self._log(f"    实际主球={actual_main}")
+                self._log(f"    合并辅助={merged['aux']}")
+                self._log(f"    实际辅助={actual_aux}")
+
+        # ════════════════════════════════════════════════════════
+        # 阶段 5: 用同样的(参数, 权重)预测未开奖的最新一期
+        # ════════════════════════════════════════════════════════
+        prediction = None
+        try:
+            # 用全部历史数据训练 → 预测下一期
+            all_train_data = self.data_reverse.head(
+                min(len(self.data_reverse), self.max_train_periods)).copy()
+
+            future_preds = []
+            for g_idx, gran in enumerate(self.granularities):
+                if gran > 0 and len(all_train_data) < gran:
+                    gran_data = all_train_data
+                elif gran > 0:
+                    gran_data = all_train_data.head(gran)
+                else:
+                    gran_data = all_train_data
+
+                if len(gran_data) < 10:
+                    continue
+
+                try:
+                    gran_name = self.gran_names[g_idx] if g_idx < len(self.gran_names) else f'{gran}期'
+                    gran_results = self.predictor.predict_all(
+                        gran_data, params=best_params, seed=9999)
+                    for mk, result in gran_results.items():
+                        if mk == 'comprehensive' or 'error' in result:
+                            continue
+                        pred = result.get('predictions', {})
+                        future_preds.append({
+                            'method_key': mk,
+                            'granularity': gran_name,
+                            'predicted_main': pred.get(self.predictor.main_name, []),
+                            'predicted_aux': pred.get(self.predictor.aux_name, []),
+                        })
+                except Exception:
+                    continue
+
+            if future_preds:
+                pred_merged = self._merge_with_weights(future_preds, optimal_weights)
+                prediction = {
+                    'main': pred_merged['main'],
+                    'aux': pred_merged['aux'],
+                    'num_method_predictions': len(future_preds),
+                }
+                self._log(f"  预测未开奖期: 主球={prediction['main']}, "
+                         f"辅助球={prediction['aux']}")
+        except Exception as e:
+            self._log(f"  [警告] 预测阶段异常: {e}")
+
+        # ════════════════════════════════════════════════════════
+        # 组装最终输出
+        # ════════════════════════════════════════════════════════
         total_time = time.time() - self.start_time
         self.running = False
 
-        # 6. 组装结果（不检查容差，直接产出）
         result = {
             'success': True,
             'solve_mode': 'best_params',
+
+            # ★ 核心产出: 参数 + 权重 配方
+            'params': {
+                mk: dict(mp) for mk, mp in best_params.items()
+            },
+            'method_weights': dict(solved_method_weights),
+            'granularity_weights': dict(solved_gran_weights),
+
+            # ★ 验算: 配方能否还原实际号码
+            'verification': {
+                'all_verified': all_verified,
+                'num_periods': len(verification_results),
+                'details': verification_results,
+            },
+
+            # ★ 预测: 用配方预测未开奖期
+            'prediction': prediction,
+
+            # 元信息
             'param_source': param_source,
-            'param_info': param_info,
-            'best_params': best_params,
-            'optimal_weights': optimal_weights,
-            'period_results': period_results,
-            'avg_total_hits': round(float(avg_hits), 4),
-            'max_total_hits': int(max_hits),
+            'param_score': param_score,
+            'nnls_residual': float(residual),
             'total_time': round(total_time, 1),
             'solve_config': {
-                'periods': self.solve_periods,
-                'tolerance_main': self.tolerance_main,
-                'tolerance_aux': self.tolerance_aux,
+                'periods': solve_periods,
+                'lottery_type': self.lottery_type,
             },
         }
 
         self._log(f"\n[回测最优+求解] 完成! 耗时{total_time:.1f}秒")
-        self._log(f"  参数来源: {param_source}")
-        self._log(f"  平均命中={avg_hits:.3f}, 最高命中={max_hits}")
-
-        for pr in period_results:
-            self._log(f"  第{pr['period_num']}期: 预测主球={pr['merged_main']}, "
-                     f"辅助球={pr['merged_aux']}")
-            self._log(f"          实际主球={pr['actual_main']}, "
-                     f"辅助球={pr['actual_aux']}")
-            self._log(f"          命中: 主球{pr['main_hits']}+辅助{pr['aux_hits']}"
-                     f"={pr['total_hits']}")
+        self._log(f"  参数来源: {param_source} | {param_score}")
+        self._log(f"  NNLS 残差: {residual:.6f}")
+        self._log(f"  验算: {'[OK] 全部通过' if all_verified else '[FAIL] 存在不重合'}")
 
         return result
 

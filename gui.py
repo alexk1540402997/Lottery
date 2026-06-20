@@ -1583,62 +1583,112 @@ class SolveWindow:
 
         # ── 回测最优 + 求解模式 ──
         if solve_mode == 'best_params':
-            period_results = result.get('period_results', [])
-            avg_hits = result.get('avg_total_hits', 0)
-            max_hits = result.get('max_total_hits', 0)
-
-            self.result_text.insert(tk.END,
-                f"求解模式: 回测最优 + 线性权重求解\n"
-                f"参数来源: {result.get('param_source', '?')}\n"
-                f"参数信息: {result.get('param_info', '?')}\n"
-                f"求解期数: {cfg.get('periods', '?')}期\n"
-                f"平均命中: {avg_hits:.3f}\n"
-                f"最高命中: {max_hits}\n"
-                f"总耗时: {total_time:.1f}秒\n\n")
-
-            if period_results:
-                self.result_text.insert(tk.END, "━━━ 每期预测详情 ━━━\n\n")
-                for pr in period_results:
-                    self.result_text.insert(tk.END,
-                        f"第{pr['period_num']}期:\n"
-                        f"  预测主球: {' '.join(f'{n:02d}' for n in pr['merged_main'])}\n"
-                        f"  实际主球: {' '.join(f'{n:02d}' for n in pr['actual_main'])}\n"
-                        f"  预测辅助: {' '.join(f'{n:02d}' for n in pr['merged_aux'])}\n"
-                        f"  实际辅助: {' '.join(f'{n:02d}' for n in pr['actual_aux'])}\n"
-                        f"  命中: 主球{pr['main_hits']}+辅助{pr['aux_hits']}"
-                        f"={pr['total_hits']}\n\n")
-
-            self.status_label.config(
-                text=f"完成! 平均命中={avg_hits:.3f}, 耗时{total_time:.0f}s")
+            self._show_best_params_result(result, cfg, total_time)
 
         # ── BO+求解 / 随机模式 ──
         else:
-            solutions = result.get('solutions', [])
-            total = result.get('total_evaluated', 0)
+            self._show_bo_solve_result(result, cfg, total_time)
 
+    def _show_best_params_result(self, result, cfg, total_time):
+        """展示回测最优+求解模式的结果（重点：权重配方）"""
+        verification = result.get('verification', {})
+        all_verified = verification.get('all_verified', False)
+        prediction = result.get('prediction')
+        nnls_residual = result.get('nnls_residual', float('nan'))
+
+        # ── 头信息 ──
+        self.result_text.insert(tk.END,
+            f"求解模式: 回测最优 + 线性权重求解\n"
+            f"参数来源: {result.get('param_source', '?')}\n"
+            f"参数评分: {result.get('param_score', '?')}\n"
+            f"NNLS 残差: {nnls_residual:.6f}\n"
+            f"总耗时: {total_time:.1f}秒\n\n")
+
+        # ── ★ 核心产出: 方法权重 ──
+        method_weights = result.get('method_weights', {})
+        if method_weights:
             self.result_text.insert(tk.END,
-                f"求解期数: {cfg.get('periods', '?')}期\n"
-                f"容差条件: 主球≥{cfg.get('tolerance_main', '?')}, "
-                f"辅助球≥{cfg.get('tolerance_aux', '?')}\n"
-                f"总评估组合: {total}组\n"
-                f"找到解: {len(solutions)}个\n"
-                f"总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)\n\n")
+                "━━━ ★ 方法权重（反解结果）━━━\n\n")
+            method_names = {
+                'method_1': '统计概率', 'method_2': '时间序列', 'method_3': '模式识别',
+                'method_4': 'LightGBM', 'method_5': '马尔可夫', 'method_6': '蒙特卡罗',
+                'method_7': '聚类分析', 'method_8': 'N-gram', 'method_9': 'XGBoost',
+                'method_10': '贝叶斯推断', 'method_11': '卡尔曼滤波', 'method_12': '泊松回归',
+                'method_13': '共生矩阵',
+            }
+            sorted_mw = sorted(method_weights.items(), key=lambda x: x[1], reverse=True)
+            for mk, wv in sorted_mw:
+                name = method_names.get(mk, mk)
+                bar = '█' * max(1, int(abs(wv) * 8))
+                self.result_text.insert(tk.END, f"  {name:<10} {wv:>8.4f}  {bar}\n")
+            self.result_text.insert(tk.END, "\n")
 
-            if solutions:
-                self.result_text.insert(tk.END,
-                    f"━━━ 找到 {len(solutions)} 个有效解 ━━━\n\n")
-                for i, sol in enumerate(solutions):
-                    self.result_text.insert(tk.END,
-                        f"【解 #{i+1}】 组合ID={sol['combo_id']} "
-                        f"平均命中={sol['avg_total_hits']:.3f} "
-                        f"最高={sol['max_total_hits']}\n")
-            else:
-                self.result_text.insert(tk.END,
-                    "未找到满足容差条件的解。\n"
-                    "建议: 降低容差条件或延长搜索时间。\n")
+        # ── ★ 核心产出: 颗粒度权重 ──
+        gran_weights = result.get('granularity_weights', {})
+        if gran_weights:
+            self.result_text.insert(tk.END,
+                "━━━ ★ 颗粒度权重（反解结果）━━━\n\n")
+            sorted_gw = sorted(gran_weights.items(), key=lambda x: x[1], reverse=True)
+            for gk, wv in sorted_gw:
+                self.result_text.insert(tk.END, f"  {gk:<8} {wv:>8.4f}\n")
+            self.result_text.insert(tk.END, "\n")
 
-            self.status_label.config(
-                text=f"完成! 找到{len(solutions)}个解, 耗时{total_time:.0f}s")
+        # ── ★ 验算: 配方能否还原实际号码 ──
+        self.result_text.insert(tk.END,
+            "━━━ ★ 验算：配方是否完全还原实际号码 ━━━\n\n")
+        verify_status = '[OK] 全部完全重合 — 配方正确！' if all_verified else '[FAIL] 存在不重合 — 参数需继续优化'
+        self.result_text.insert(tk.END, f"  验算结果: {verify_status}\n\n")
+
+        for vd in verification.get('details', []):
+            match_icon = '[OK]' if vd['all_match'] else '[FAIL]'
+            self.result_text.insert(tk.END,
+                f"  第{vd['period_num']}期 {match_icon}\n"
+                f"    合并主球: {' '.join(f'{n:02d}' for n in vd['merged_main'])}\n"
+                f"    实际主球: {' '.join(f'{n:02d}' for n in vd['actual_main'])}\n"
+                f"    合并辅助: {' '.join(f'{n:02d}' for n in vd['merged_aux'])}\n"
+                f"    实际辅助: {' '.join(f'{n:02d}' for n in vd['actual_aux'])}\n"
+                f"    主球{'重合' if vd['main_match'] else str(vd['main_hits']) + '个命中'}, "
+                f"辅助{'重合' if vd['aux_match'] else str(vd['aux_hits']) + '个命中'}\n\n")
+
+        # ── ★ 预测: 未开奖最新一期 ──
+        if prediction:
+            self.result_text.insert(tk.END,
+                "━━━ ★ 预测：未开奖最新一期 ━━━\n\n"
+                f"  预测主球: {' '.join(f'{n:02d}' for n in prediction['main'])}\n"
+                f"  预测辅助: {' '.join(f'{n:02d}' for n in prediction['aux'])}\n"
+                f"  (基于 {prediction.get('num_method_predictions', '?')} 组预测投票)\n\n")
+
+        self.status_label.config(
+            text=f"完成! 验算={'通过' if all_verified else '未通过'}, 耗时{total_time:.0f}s")
+
+    def _show_bo_solve_result(self, result, cfg, total_time):
+        """展示 BO+求解 / 随机模式的结果"""
+        solutions = result.get('solutions', [])
+        total = result.get('total_evaluated', 0)
+
+        self.result_text.insert(tk.END,
+            f"求解期数: {cfg.get('periods', '?')}期\n"
+            f"容差条件: 主球≥{cfg.get('tolerance_main', '?')}, "
+            f"辅助球≥{cfg.get('tolerance_aux', '?')}\n"
+            f"总评估组合: {total}组\n"
+            f"找到解: {len(solutions)}个\n"
+            f"总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)\n\n")
+
+        if solutions:
+            self.result_text.insert(tk.END,
+                f"━━━ 找到 {len(solutions)} 个有效解 ━━━\n\n")
+            for i, sol in enumerate(solutions):
+                self.result_text.insert(tk.END,
+                    f"【解 #{i+1}】 组合ID={sol['combo_id']} "
+                    f"平均命中={sol['avg_total_hits']:.3f} "
+                    f"最高={sol['max_total_hits']}\n")
+        else:
+            self.result_text.insert(tk.END,
+                "未找到满足容差条件的解。\n"
+                "建议: 降低容差条件或延长搜索时间。\n")
+
+        self.status_label.config(
+            text=f"完成! 找到{len(solutions)}个解, 耗时{total_time:.0f}s")
 
 # ============================================================================
 #  入口
