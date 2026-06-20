@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # 导入业务模块
 from predictor import LotteryPredictor, DEFAULT_PARAMS, METHOD_NAMES_NEW
 from merger import ResultMerger, METHOD_NAMES, GRANULARITY_NAMES
-from backtester import BacktestEngine, BacktestRunner, SolveRunner
+from backtester import BacktestEngine, BacktestRunner, SolveRunner, OPTIMIZERS_AVAILABLE
 from config_manager import ConfigManager
 
 # 颗粒度映射
@@ -1449,6 +1449,13 @@ class SolveWindow:
             num_workers=num_workers,
         )
 
+        # 4.3+: 尝试启用 BO + 线性权重求解
+        solve_mode = 'random'  # 默认
+        if OPTIMIZERS_AVAILABLE:
+            self.solve_engine.init_bo('solve')
+            self.solve_engine.use_linear_weights = True
+            solve_mode = 'bo_linear'
+
         self.running = True
         self.solutions_found = 0
         self.btn_start.config(state=tk.DISABLED)
@@ -1457,7 +1464,8 @@ class SolveWindow:
         self.status_label.config(text="求解中...")
 
         self.result_text.delete(1.0, tk.END)
-        self._log(f"求解启动: 最新{solve_periods}期, "
+        mode_label = 'BO+线性求解' if solve_mode == 'bo_linear' else '随机搜索'
+        self._log(f"求解启动 [{mode_label}]: 最新{solve_periods}期, "
                  f"主球≥{tol_main}, 辅助球≥{tol_aux}, "
                  f"时间={'不限' if max_time==0 else f'{max_time//60}分钟'}, "
                  f"{num_workers}线程")
