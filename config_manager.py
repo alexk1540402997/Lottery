@@ -180,7 +180,8 @@ class ConfigManager:
     def save_params_version(self, params: Dict,
                             description: str = "",
                             lottery_type: str = "ssq",
-                            backtest_score: float = 0.0
+                            backtest_score: float = 0.0,
+                            combo_id: int = None
                             ) -> str:
         """
         保存模型参数版本。
@@ -190,6 +191,7 @@ class ConfigManager:
             description: 版本描述
             lottery_type: 彩票类型
             backtest_score: 回测得分（用于排序）
+            combo_id: 来源回测组合编号（关联优化界面的版本和回测的组合）
 
         返回:
             版本文件名
@@ -208,18 +210,23 @@ class ConfigManager:
             'lottery_type': lottery_type,
             'backtest_score': backtest_score,
         }
+        if combo_id is not None:
+            params_copy['_meta']['combo_id'] = combo_id
 
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(params_copy, f, ensure_ascii=False, indent=2)
 
         # 更新索引
-        self.version_index['param_versions'].append({
+        idx_entry = {
             'version': version_num,
             'filename': filename,
             'created': params_copy['_meta']['created'],
             'description': description,
             'backtest_score': backtest_score,
-        })
+        }
+        if combo_id is not None:
+            idx_entry['combo_id'] = combo_id
+        self.version_index['param_versions'].append(idx_entry)
         self._save_version_index()
 
         # 更新当前参数
@@ -232,7 +239,8 @@ class ConfigManager:
                               method_weights: Dict[str, float] = None,
                               gran_weights: Dict[str, float] = None,
                               description: str = "",
-                              backtest_score: float = 0.0
+                              backtest_score: float = 0.0,
+                              combo_id: int = None
                               ) -> str:
         """
         保存合并权重版本。兼容旧格式自动转换。
@@ -243,6 +251,7 @@ class ConfigManager:
             gran_weights: 颗粒度权重 (旧格式，自动转换)
             description: 版本描述
             backtest_score: 回测得分
+            combo_id: 来源回测组合编号
 
         返回:
             版本文件名
@@ -267,17 +276,22 @@ class ConfigManager:
                 'backtest_score': backtest_score,
             }
         }
+        if combo_id is not None:
+            weights['_meta']['combo_id'] = combo_id
 
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(weights, f, ensure_ascii=False, indent=2)
 
-        self.version_index['weight_versions'].append({
+        idx_entry = {
             'version': version_num,
             'filename': filename,
             'created': weights['_meta']['created'],
             'description': description,
             'backtest_score': backtest_score,
-        })
+        }
+        if combo_id is not None:
+            idx_entry['combo_id'] = combo_id
+        self.version_index['weight_versions'].append(idx_entry)
         self._save_version_index()
 
         self.current_weights = weights

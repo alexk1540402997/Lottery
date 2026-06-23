@@ -631,20 +631,22 @@ class LotterySystemGUI:
         tree_frame = tk.Frame(ver_frame, bg=self.colors['bg'])
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        columns = ("#", "类型", "时间", "得分", "描述")
+        columns = ("#", "组合", "类型", "时间", "得分", "描述")
         self.version_tree = ttk.Treeview(tree_frame, columns=columns,
                                           show="headings", height=8,
                                           selectmode="browse")
         self.version_tree.heading("#", text="#")
+        self.version_tree.heading("组合", text="组合")
         self.version_tree.heading("类型", text="类型")
         self.version_tree.heading("时间", text="创建时间")
         self.version_tree.heading("得分", text="回测得份")
         self.version_tree.heading("描述", text="描述")
         self.version_tree.column("#", width=40, anchor="center")
+        self.version_tree.column("组合", width=65, anchor="center")
         self.version_tree.column("类型", width=60, anchor="center")
-        self.version_tree.column("时间", width=140)
-        self.version_tree.column("得分", width=70, anchor="center")
-        self.version_tree.column("描述", width=280)
+        self.version_tree.column("时间", width=130)
+        self.version_tree.column("得分", width=60, anchor="center")
+        self.version_tree.column("描述", width=240)
 
         tree_scroll = tk.Scrollbar(tree_frame, orient=tk.VERTICAL,
                                    command=self.version_tree.yview)
@@ -1168,6 +1170,7 @@ class LotterySystemGUI:
             'params': best.get('params', {}),
             'weights': best.get('weights', {}),
             'avg_hits': best.get('avg_total_hits', 0),
+            'combo_id': best.get('combo_id'),
         }
 
         text.insert(tk.END,
@@ -1248,17 +1251,20 @@ class LotterySystemGUI:
                         text.insert(tk.END, f"    {pname}: {pval}\n")
 
         # 保存版本
+        best_combo_id = best.get('combo_id', best.get('params', {}).get('_meta', {}).get('combo_id'))
         self.config_mgr.save_params_version(
             best.get('params', {}),
             description=f"回测优化 (平均命中{best['avg_total_hits']:.3f}, "
                        f"{best['hit_rate_5plus']:.1%}命中5+)",
             lottery_type=self.lottery_type,
             backtest_score=best['avg_total_hits'],
+            combo_id=best_combo_id,
         )
         self.config_mgr.save_weights_version(
             composite_weights=cw,
             description=f"回测优化权重 (平均命中{best['avg_total_hits']:.3f})",
             backtest_score=best['avg_total_hits'],
+            combo_id=best_combo_id,
         )
 
         # 生成Excel报告
@@ -1325,14 +1331,18 @@ class LotterySystemGUI:
 
         # 参数版本信息
         meta = config['params'].get('_meta', {})
-        text.insert(tk.END, f"模型参数版本: v{meta.get('version', 0)}\n")
+        param_cid = meta.get('combo_id')
+        text.insert(tk.END, f"模型参数版本: v{meta.get('version', 0)}"
+                           f"{'  ← 组合#' + str(param_cid) if param_cid else ''}\n")
         text.insert(tk.END, f"创建时间: {meta.get('created', 'N/A')}\n")
         text.insert(tk.END, f"描述: {meta.get('description', 'N/A')}\n")
         text.insert(tk.END, f"回测得份: {meta.get('backtest_score', 'N/A')}\n\n")
 
         # 权重版本信息
         wmeta = config['weights'].get('_meta', {})
-        text.insert(tk.END, f"权重配置版本: v{wmeta.get('version', 0)}\n")
+        w_cid = wmeta.get('combo_id')
+        text.insert(tk.END, f"权重配置版本: v{wmeta.get('version', 0)}"
+                           f"{'  ← 组合#' + str(w_cid) if w_cid else ''}\n")
         text.insert(tk.END, f"创建时间: {wmeta.get('created', 'N/A')}\n")
         text.insert(tk.END, f"描述: {wmeta.get('description', 'N/A')}\n\n")
 
@@ -1442,6 +1452,7 @@ class LotterySystemGUI:
         avg_hits = combo.get('avg_hits', 0)
         params = combo.get('params', {})
         weights = combo.get('weights', {})
+        combo_id = combo.get('combo_id')
 
         if not params or not weights:
             messagebox.showerror("错误", "最优组合数据不完整")
@@ -1451,6 +1462,7 @@ class LotterySystemGUI:
         confirm = messagebox.askyesno(
             "确认应用",
             f"将回测最优组合(平均命中{avg_hits:.3f})应用到当前配置？\n\n"
+            f"组合ID: {combo_id if combo_id else '?'}\n"
             f"这将覆盖:\n"
             f"  - 所有13种方法的模型参数\n"
             f"  - 方法权重和颗粒度权重\n\n"
@@ -1466,6 +1478,7 @@ class LotterySystemGUI:
                 description=f"应用回测最优组合 (平均命中{avg_hits:.3f})",
                 lottery_type=self.lottery_type,
                 backtest_score=avg_hits,
+                combo_id=combo_id,
             )
             # 保存权重
             cw = weights.get('composite_weights', {})
@@ -1473,6 +1486,7 @@ class LotterySystemGUI:
                 composite_weights=cw,
                 description=f"应用回测最优权重 (平均命中{avg_hits:.3f})",
                 backtest_score=avg_hits,
+                combo_id=combo_id,
             )
             self._log(f"✓ 已应用回测最优组合! 平均命中 {avg_hits:.3f}", "success")
             self._refresh_optimize_display()
@@ -1506,6 +1520,7 @@ class LotterySystemGUI:
             pv_time = pv.get('created', '')
             wv = wv_map.get(pv['version'], {})
             wv_time = wv.get('created', '') if wv else ''
+            cid = pv.get('combo_id') or (wv.get('combo_id') if wv else None)
             combined.append({
                 'version': pv['version'],
                 'type': '参数+权重' if wv else '参数',
@@ -1514,6 +1529,7 @@ class LotterySystemGUI:
                 'desc': pv.get('description', ''),
                 'param_version': pv['version'],
                 'weight_version': wv.get('version') if wv else None,
+                'combo_id': cid,
             })
 
         # 加上只存在于权重列表但不在参数列表中的版本
@@ -1528,15 +1544,17 @@ class LotterySystemGUI:
                     'desc': wv.get('description', ''),
                     'param_version': None,
                     'weight_version': wv['version'],
+                    'combo_id': wv.get('combo_id'),
                 })
 
         combined.sort(key=lambda x: x['version'], reverse=True)
 
         for item in combined:
             score_str = f"{item['score']:.2f}" if item['score'] else "—"
+            cid_str = f"组合#{item['combo_id']}" if item.get('combo_id') else "—"
             self.version_tree.insert("", tk.END,
                 iid=f"v{item['version']}",
-                values=(item['version'], item['type'], item['time'],
+                values=(item['version'], cid_str, item['type'], item['time'],
                        score_str, item['desc']))
 
         # 存储合并数据供查看/应用使用
@@ -1563,6 +1581,8 @@ class LotterySystemGUI:
         lines.append(f"类型: {item['type']}")
         lines.append(f"创建时间: {item['time']}")
         lines.append(f"回测得份: {item['score']}")
+        if item.get('combo_id'):
+            lines.append(f"来源组合: 组合 #{item['combo_id']}")
         lines.append(f"描述: {item['desc']}")
 
         # 加载参数详情
