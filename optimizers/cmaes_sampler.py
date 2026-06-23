@@ -373,19 +373,14 @@ class CMAESBridge:
             self._pending_x = None
 
     def _sample_weights(self) -> Dict:
-        """随机采样权重"""
-        method_weights = {}
+        """随机采样 65 个独立 composite_weights"""
+        composite_weights = {}
         for i in range(1, 14):
-            method_weights[f'method_{i}'] = round(
-                self._weight_rng.uniform(0.3, 3.0), 4)
-        gran_weights = {
-            '50期': round(self._weight_rng.uniform(0.3, 3.0), 4),
-            '100期': round(self._weight_rng.uniform(0.3, 3.0), 4),
-            '500期': round(self._weight_rng.uniform(0.3, 3.0), 4),
-            '1000期': round(self._weight_rng.uniform(0.3, 3.0), 4),
-            '全部期': round(self._weight_rng.uniform(0.3, 3.0), 4),
-        }
-        return {'method_weights': method_weights, 'granularity_weights': gran_weights}
+            for gn in ['50期', '100期', '500期', '1000期', '全部期']:
+                key = f'method_{i}@{gn}'
+                composite_weights[key] = round(
+                    self._weight_rng.uniform(-500.0, 500.0), 4)
+        return {'composite_weights': composite_weights}
 
     def get_stats(self) -> Dict:
         return self.cmaes.get_stats()

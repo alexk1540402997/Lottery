@@ -67,8 +67,8 @@
     "method_13@全部期": 25.0343
   },
   "_meta": {
-    "version": 25,
-    "created": "2026-06-23 01:40:55",
+    "version": 24,
+    "created": "2026-06-23 00:50:23",
     "description": "应用回测最优权重 (平均命中4.000)",
     "backtest_score": 4.0
   }

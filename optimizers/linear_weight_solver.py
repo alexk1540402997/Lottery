@@ -1,24 +1,23 @@
 """
-线性权重求解器
-===============
+线性权重求解器 5.0
+==================
 对于求解模式，将权重优化从离散搜索中分离出来，
-用非负最小二乘 (NNLS) 精确求解最优合并权重。
+用线性规划 (LP) 或最小二乘 (LSTSQ) 精确求解最优合并权重。
 
 核心原理:
   合并层投票运算是线性的：
     v_n = SUM_j w_j × I[号码n被组合j预测]
     其中 v_n 是号码n的得票，w_j 是组合j的权重
 
-  给定固定模型参数（各组合的预测结果已确定），
-  最优权重是使得实际号码得票最大化的 w 向量。
+  65个(方法 × 颗粒度)组合各有独立权重 w_j，允许正/负/零。
 
 用法:
   solver = LinearWeightSolver('ssq')
-  solution = solver.solve(predictions_by_period, actual_numbers_by_period)
-  # solution = {'method_weights': {...}, 'granularity_weights': {...}}
+  solution = solver.solve_lp_multi_period(predictions_by_period, actuals_by_period)
+  # solution = {'composite_weights': {'method_1@500期': 1.5, ...}, ...}
 
 依赖:
-  scipy.optimize.nnls (标准库)
+  scipy.optimize.linprog, numpy.linalg.lstsq
 """
 
 import numpy as np
@@ -42,17 +41,22 @@ GRANULARITY_VALUES = [50, 100, 500, 1000, 0]
 
 class LinearWeightSolver:
     """
-    用非负最小二乘 (NNLS) 求解最优合并权重。
+    求解 65 个独立 composite_weights。
 
     问题形式化:
       X: (N个候选号码) × (M个方法×颗粒度组合) 的0/1矩阵
          X[n, j] = 1 表示组合j预测了号码n
       t: 目标向量，t[n] = 1 若n是实际开奖号码，否则 0
-      w: 待求解的权重向量 (非负)
+      w: 待求解的权重向量 (允许正/负/零，范围 [-500.0, 500.0])
 
-      min || X w - t ||^2
-      s.t. w >= 0
+    两种方法:
+      LP:  min 0  s.t. (X[b,:]-X[a,:])·w <= -ε  ∀ 实际a, 非实际b
+           保证排序正确（若有可行解）
+      LSTSQ: min ||X w - t||^2
+             LP不可行时的降级方案
     """
+
+    COMPOSITE_WEIGHT_MAX = 10000.0  # 权重绝对值上限（LP用，近乎无界）
 
     def __init__(self, lottery_type: str = 'ssq'):
         self.lottery_type = lottery_type.lower()
@@ -162,20 +166,16 @@ class LinearWeightSolver:
                              actual_aux: List[int]
                              ) -> Dict[str, Any]:
         """
-        对单期数据求解最优权重。
+        对单期数据求解最优权重（最小二乘，无正负约束）。
 
         返回:
           {
-            'composite_weights': [...],  # 每个组合的扁平权重
-            'method_weights': {...},
-            'granularity_weights': {...},
-            'residual': float,             # NNLS 残差
-            'predicted_score': float,      # 预测的实际号码平均得票
+            'composite_weights': {...},     # {label: weight} 字典
+            'residual': float,              # LSTSQ 残差
+            'actual_score': float,          # 预测的实际号码平均得票
             'column_labels': [...],
           }
         """
-        from scipy.optimize import nnls
-
         X_main, X_aux, col_labels, _, _ = self._build_design_matrix(
             per_group_predictions)
         t_main, t_aux = self._build_target_vector(actual_main, actual_aux)
@@ -185,14 +185,14 @@ class LinearWeightSolver:
         t = np.concatenate([t_main, t_aux])
 
         if X.shape[0] == 0 or X.shape[1] == 0:
-            return {'error': '设计矩阵为空', 'composite_weights': []}
+            return {'error': '设计矩阵为空', 'composite_weights': {}}
 
         # 检查是否有有效列（至少有一个非零元素）
         col_sums = X.sum(axis=0)
         valid_cols = col_sums > 0
         if not valid_cols.any():
             return {'error': '所有列均为零 — 预测结果全空',
-                    'composite_weights': np.zeros(X.shape[1])}
+                    'composite_weights': {}}
 
         # 如果只有部分列有效，只对有效列求解
         if not valid_cols.all():
@@ -202,8 +202,9 @@ class LinearWeightSolver:
             X_valid = X
             valid_labels = col_labels
 
-        # NNLS 求解
-        w_valid, residual = nnls(X_valid, t)
+        # 最小二乘求解（无正负约束）
+        w_valid, residuals, rank, sv = np.linalg.lstsq(X_valid, t, rcond=None)
+        residual = float(residuals[0]) if len(residuals) > 0 else 0.0
 
         # 映射回完整权重向量
         if not valid_cols.all():
@@ -214,10 +215,7 @@ class LinearWeightSolver:
         else:
             w_full = w_valid
 
-        # 归一化（避免权重过大或过小）
-        w_sum = w_full.sum()
-        if w_sum > 1e-10:
-            w_full = w_full / w_sum
+        # LSTSQ 无裁剪 — 允许任意大小的权重
 
         # 计算实际号码的预测得票
         if X.shape[1] > 0:
@@ -226,15 +224,16 @@ class LinearWeightSolver:
         else:
             actual_score = 0.0
 
-        # 分解为 method_weights 和 granularity_weights
-        method_weights, gran_weights = self._decompose_weights(
-            w_full, per_group_predictions, col_labels)
+        # 构建 composite_weights 字典
+        composite_weights = {
+            col_labels[i]: round(float(w_full[i]), 6)
+            for i in range(len(col_labels))
+            if abs(w_full[i]) > 1e-10
+        }
 
         return {
-            'composite_weights': w_full.tolist(),
-            'method_weights': method_weights,
-            'granularity_weights': gran_weights,
-            'residual': float(residual),
+            'composite_weights': composite_weights,
+            'residual': residual,
             'actual_score': float(actual_score),
             'column_labels': col_labels,
         }
@@ -243,7 +242,7 @@ class LinearWeightSolver:
     all_period_predictions: List[List[Dict]],
     all_period_actuals: List[Tuple[List[int], List[int]]],
     epsilon: float = 0.01,
-    max_weight: float = 5.0,
+    max_weight: float = 10000.0,
     ) -> Dict[str, Any]:
         """
         用线性规划精确求解权重，使得实际号码得票严格高于非实际号码。
@@ -349,40 +348,37 @@ class LinearWeightSolver:
         A_ub = np.array(A_ub_rows, dtype=float)
         b_ub = np.array(b_ub_vals, dtype=float)
 
-        # 目标函数: 最小化权重和（正则化）
-        c = np.ones(n_cols, dtype=float)
+        # 目标函数: 微小正数 (倾向小权重，避免极端值，同时几乎不影响可行性)
+        c = np.full(n_cols, 1e-6, dtype=float)
 
-        # 边界: 0 <= w <= max_weight
-        bounds = [(0, max_weight) for _ in range(n_cols)]
+        # 边界: -max_weight <= w <= max_weight (允许负权重)
+        bounds = [(-max_weight, max_weight) for _ in range(n_cols)]
 
         # 求解
         result = linprog(
             c, A_ub=A_ub, b_ub=b_ub,
             bounds=bounds,
-            method='highs',  # HiGHS 求解器（scipy 1.6+）
+            method='highs',
             options={'maxiter': 5000},
         )
 
         if result.success:
             w_full = result.x
-            # 归一化
-            w_sum = w_full.sum()
-            if w_sum > 1e-10:
-                w_full = w_full / w_sum
         else:
-            # LP 不可行 → 用 NNLS 作为降级方案
-            return self._nnls_fallback(
+            # LP 不可行 → 用 LSTSQ 作为降级方案
+            return self._lstsq_fallback(
                 all_period_predictions, all_period_actuals,
                 col_labels, lp_status=result.message)
 
-        # 分解权重
-        method_weights, gran_weights = self._decompose_weights(
-            w_full, all_period_predictions[0], col_labels)
+        # 构建 composite_weights 字典（不再分解）
+        composite_weights = {
+            col_labels[i]: round(float(w_full[i]), 6)
+            for i in range(n_cols)
+            if abs(w_full[i]) > 1e-10
+        }
 
         return {
-            'composite_weights': w_full.tolist(),
-            'method_weights': method_weights,
-            'granularity_weights': gran_weights,
+            'composite_weights': composite_weights,
             'residual': 0.0,  # LP 精确求解，无残差
             'lp_success': True,
             'lp_status': result.message,
@@ -391,15 +387,13 @@ class LinearWeightSolver:
             'n_constraints': len(A_ub_rows),
         }
 
-    def _nnls_fallback(self,
-                       all_period_predictions: List[List[Dict]],
-                       all_period_actuals: List[Tuple[List[int], List[int]]],
-                       col_labels: List[str],
-                       lp_status: str = 'unknown'
-                       ) -> Dict[str, Any]:
-        """LP 不可行时的 NNLS 降级方案，附带诊断信息"""
-        from scipy.optimize import nnls
-
+    def _lstsq_fallback(self,
+                        all_period_predictions: List[List[Dict]],
+                        all_period_actuals: List[Tuple[List[int], List[int]]],
+                        col_labels: List[str],
+                        lp_status: str = 'unknown'
+                        ) -> Dict[str, Any]:
+        """LP 不可行时的最小二乘降级方案，附带诊断信息"""
         n_periods = len(all_period_predictions)
 
         # 诊断: 找出未被任何方法覆盖的实际号码
@@ -422,7 +416,7 @@ class LinearWeightSolver:
                 if a not in all_predicted_aux:
                     uncovered_aux.add(a)
 
-        # NNLS 求解（原有逻辑）
+        # LSTSQ 求解（无正负约束）
         X_blocks = []
         t_blocks = []
 
@@ -451,10 +445,10 @@ class LinearWeightSolver:
         valid_cols = col_sums > 0
         if not valid_cols.any():
             return {'error': '所有列均为零'}
-        if not valid_cols.all():
-            X = X[:, valid_cols]
 
-        w_valid, residual = nnls(X, t)
+        X_valid = X[:, valid_cols] if not valid_cols.all() else X
+        w_valid, residuals, rank, sv = np.linalg.lstsq(X_valid, t, rcond=None)
+        residual = float(residuals[0]) if len(residuals) > 0 else 0.0
 
         if not valid_cols.all():
             w_full = np.zeros(len(col_labels))
@@ -464,20 +458,20 @@ class LinearWeightSolver:
         else:
             w_full = w_valid
 
-        w_sum = w_full.sum()
-        if w_sum > 1e-10:
-            w_full = w_full / w_sum
+        # LSTSQ 无裁剪 — 允许任意大小的权重
 
-        method_weights, gran_weights = self._decompose_weights(
-            w_full, all_period_predictions[0], col_labels)
+        # 构建 composite_weights 字典
+        composite_weights = {
+            col_labels[i]: round(float(w_full[i]), 6)
+            for i in range(len(col_labels))
+            if abs(w_full[i]) > 1e-10
+        }
 
         return {
-            'composite_weights': w_full.tolist(),
-            'method_weights': method_weights,
-            'granularity_weights': gran_weights,
-            'residual': float(residual),
+            'composite_weights': composite_weights,
+            'residual': residual,
             'lp_success': False,
-            'lp_status': 'LP不可行(参数未覆盖实际号码) → 已降级为NNLS近似解',
+            'lp_status': 'LP不可行(参数未覆盖实际号码) → 已降级为LSTSQ近似解',
             'lp_diagnostic': {
                 'uncovered_main': sorted(list(uncovered_main)),
                 'uncovered_aux': sorted(list(uncovered_aux)),
@@ -515,7 +509,7 @@ class LinearWeightSolver:
         返回:
           同 solve_single_period
         """
-        from scipy.optimize import nnls
+        from scipy.optimize import nnls  # 保留仅用于兼容，实际上下面用lstsq
 
         if not all_period_predictions:
             return {'error': '无预测数据'}
@@ -540,7 +534,6 @@ class LinearWeightSolver:
         # 构建聚合设计矩阵
         X_blocks = []
         t_blocks = []
-        row_weights_blocks = []
 
         for p_idx, (period_preds, (actual_main, actual_aux)) in enumerate(
                 zip(all_period_predictions, all_period_actuals)):
@@ -577,12 +570,15 @@ class LinearWeightSolver:
         if not valid_cols.any():
             return {'error': '所有列均为零'}
         if not valid_cols.all():
-            X = X[:, valid_cols]
+            X_valid = X[:, valid_cols]
             valid_labels = [lbl for i, lbl in enumerate(col_labels) if valid_cols[i]]
         else:
+            X_valid = X
             valid_labels = col_labels
 
-        w_valid, residual = nnls(X, t)
+        # 最小二乘求解（无正负约束）
+        w_valid, residuals, rank, sv = np.linalg.lstsq(X_valid, t, rcond=None)
+        residual = float(residuals[0]) if len(residuals) > 0 else 0.0
 
         if not valid_cols.all():
             w_full = np.zeros(len(col_labels))
@@ -592,10 +588,7 @@ class LinearWeightSolver:
         else:
             w_full = w_valid
 
-        # 归一化
-        w_sum = w_full.sum()
-        if w_sum > 1e-10:
-            w_full = w_full / w_sum
+        # LSTSQ 无裁剪 — 允许任意大小的权重
 
         # 计算每期的得分
         period_scores = []
@@ -620,16 +613,16 @@ class LinearWeightSolver:
             actual_score = scores[t_p > 0].mean() if t_p.sum() > 0 else 0.0
             period_scores.append(float(actual_score))
 
-        # 分解权重
-        # 需要每个组合的信息，从第一个周期获取
-        method_weights, gran_weights = self._decompose_weights(
-            w_full, all_period_predictions[0], col_labels)
+        # 构建 composite_weights 字典（不再分解）
+        composite_weights = {
+            col_labels[i]: round(float(w_full[i]), 6)
+            for i in range(len(col_labels))
+            if abs(w_full[i]) > 1e-10
+        }
 
         return {
-            'composite_weights': w_full.tolist(),
-            'method_weights': method_weights,
-            'granularity_weights': gran_weights,
-            'residual': float(residual),
+            'composite_weights': composite_weights,
+            'residual': residual,
             'period_scores': period_scores,
             'avg_score': float(np.mean(period_scores)) if period_scores else 0.0,
             'column_labels': col_labels,
@@ -637,89 +630,8 @@ class LinearWeightSolver:
         }
 
     # ------------------------------------------------------------------
-    #  权重分解
+    #  权重分解 — 已移除。权重直接使用 65 个独立 composite_weights。
     # ------------------------------------------------------------------
-
-    def _decompose_weights(self,
-                            composite_weights: np.ndarray,
-                            per_group_entries: List[Dict],
-                            col_labels: List[str]
-                            ) -> Tuple[Dict[str, float], Dict[str, float]]:
-        """
-        将扁平复合权重分解为 method_weights 和 granularity_weights。
-
-        composite_weight[j] ≈ method_weight[method_j] × granularity_weight[gran_j]
-
-        方法：对数线性最小二乘
-          log(w_j) ≈ log(m_method_j) + log(g_gran_j)
-          用线性最小二乘求解
-        """
-        # 构建对齐后的映射
-        label_to_idx = {lbl: i for i, lbl in enumerate(col_labels)}
-
-        methods_seen = set()
-        grans_seen = set()
-        rows = []
-
-        for entry in per_group_entries:
-            label = f"{entry['method_key']}@{entry['granularity']}"
-            idx = label_to_idx.get(label)
-            if idx is None:
-                continue
-            w = composite_weights[idx]
-            if w <= 1e-10:
-                continue
-            methods_seen.add(entry['method_key'])
-            grans_seen.add(entry['granularity'])
-            rows.append((entry['method_key'], entry['granularity'],
-                          np.log(w)))
-
-        if len(rows) < 2:
-            # 样本不足，返回均权
-            return (
-                {mk: 1.0 for mk in methods_seen} or {mk: 1.0 for mk in METHOD_KEYS},
-                {gk: 1.0 for gk in grans_seen} or {gk: 1.0 for gk in GRANULARITY_NAMES},
-            )
-
-        # 构建设计矩阵（one-hot 编码方法 + 颗粒度）
-        methods_list = sorted(methods_seen)
-        grans_list = sorted(grans_seen)
-        n_methods = len(methods_list)
-        n_grans = len(grans_list)
-
-        A = np.zeros((len(rows), n_methods + n_grans))
-        b = np.zeros(len(rows))
-
-        for i, (mk, gk, log_w) in enumerate(rows):
-            A[i, methods_list.index(mk)] = 1.0
-            A[i, n_methods + grans_list.index(gk)] = 1.0
-            b[i] = log_w
-
-        # 最小二乘求解
-        x, residuals, rank, sv = np.linalg.lstsq(A, b, rcond=None)
-
-        # 转回线性空间
-        log_method = x[:n_methods]
-        log_gran = x[n_methods:]
-
-        # 归一化
-        method_raw = np.exp(log_method - log_method.mean())
-        gran_raw = np.exp(log_gran - log_gran.mean())
-
-        method_weights = {mk: round(float(method_raw[i]), 4)
-                          for i, mk in enumerate(methods_list)}
-        gran_weights = {gk: round(float(gran_raw[i]), 4)
-                        for i, gk in enumerate(grans_list)}
-
-        # 补全未出现的方法/颗粒度
-        for mk in METHOD_KEYS:
-            if mk not in method_weights:
-                method_weights[mk] = 1.0
-        for gk in GRANULARITY_NAMES:
-            if gk not in gran_weights:
-                gran_weights[gk] = 1.0
-
-        return method_weights, gran_weights
 
     # ------------------------------------------------------------------
     #  验证
@@ -732,20 +644,16 @@ class LinearWeightSolver:
                            actual_aux: List[int]
                            ) -> Dict[str, Any]:
         """
-        验证求解结果：用解出的权重重新计算得票和Top-K命中。
+        验证求解结果：用解出的 composite_weights 重新计算得票和Top-K命中。
 
         返回:
           {
-            'predicted_main': [...],  # 按加权得票排序的Top-K号码
+            'predicted_main': [...],
             'predicted_aux': [...],
-            'main_hits': int,
-            'aux_hits': int,
-            'total_hits': int,
-            'vote_details': {...},
+            'main_hits': int, 'aux_hits': int, 'total_hits': int,
           }
         """
-        method_w = solution.get('method_weights', {})
-        gran_w = solution.get('granularity_weights', {})
+        composite_w = solution.get('composite_weights', {})
 
         # 计算每个号码的加权得票
         main_votes = defaultdict(float)
@@ -754,7 +662,8 @@ class LinearWeightSolver:
         for entry in per_group_predictions:
             mk = entry['method_key']
             gk = entry['granularity']
-            weight = method_w.get(mk, 1.0) * gran_w.get(gk, 1.0)
+            key = f'{mk}@{gk}'
+            weight = composite_w.get(key, 1.0)
 
             for num in entry.get('predicted_main', []):
                 main_votes[num] += weight
@@ -829,7 +738,7 @@ def extract_predictions_from_result(period_results: List[Dict],
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  线性权重求解器 测试")
+    print("  线性权重求解器 5.0 测试")
     print("=" * 60)
 
     solver = LinearWeightSolver('ssq')
@@ -853,11 +762,13 @@ if __name__ == "__main__":
     result = solver.solve_single_period(
         mock_predictions, actual_main, actual_aux)
 
-    print(f"\n求解结果:")
+    print(f"\n单期求解结果 (LSTSQ, 无正负约束):")
     print(f"  残差: {result.get('residual', 'N/A'):.6f}")
     print(f"  实际号码平均得票: {result.get('actual_score', 'N/A'):.4f}")
-    print(f"  方法权重: {result.get('method_weights', {})}")
-    print(f"  颗粒度权重: {result.get('granularity_weights', {})}")
+    print(f"  composite_weights ({len(result.get('composite_weights', {}))}个非零权重):")
+    for key, w in sorted(result.get('composite_weights', {}).items(),
+                         key=lambda x: abs(x[1]), reverse=True):
+        print(f"    {key}: {w:+.6f}")
 
     # 验证
     validation = solver.validate_solution(
@@ -869,12 +780,31 @@ if __name__ == "__main__":
           f"总{validation['total_hits']}")
 
     # 测试多期求解
-    print(f"\n--- 多期求解测试 ---")
+    print(f"\n--- 多期求解测试 (LSTSQ) ---")
     multi_result = solver.solve_multi_period(
-        [mock_predictions, mock_predictions],  # 同一组预测重复两次
+        [mock_predictions, mock_predictions],
         [(actual_main, actual_aux), ([2, 6, 11, 16, 21, 26], [5])]
     )
     print(f"  平均得分: {multi_result.get('avg_score', 'N/A'):.4f}")
     print(f"  各期得分: {multi_result.get('period_scores', [])}")
+    print(f"  composite_weights ({len(multi_result.get('composite_weights', {}))}个):")
+    for key, w in sorted(multi_result.get('composite_weights', {}).items(),
+                         key=lambda x: abs(x[1]), reverse=True):
+        print(f"    {key}: {w:+.6f}")
 
-    print("\n[OK] 线性权重求解器测试完成")
+    # 测试 LP 求解
+    print(f"\n--- 多期求解测试 (LP 精确求解) ---")
+    lp_result = solver.solve_lp_multi_period(
+        [mock_predictions, mock_predictions],
+        [(actual_main, actual_aux), ([2, 6, 11, 16, 21, 26], [5])],
+        epsilon=0.01, max_weight=500.0,
+    )
+    print(f"  LP成功: {lp_result.get('lp_success', False)}")
+    print(f"  LP状态: {lp_result.get('lp_status', 'N/A')[:80]}")
+    if lp_result.get('composite_weights'):
+        print(f"  composite_weights ({len(lp_result['composite_weights'])}个):")
+        for key, w in sorted(lp_result['composite_weights'].items(),
+                             key=lambda x: abs(x[1]), reverse=True)[:10]:
+            print(f"    {key}: {w:+.6f}")
+
+    print("\n[OK] 线性权重求解器 5.0 测试完成")

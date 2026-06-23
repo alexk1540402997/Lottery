@@ -1,0 +1,80 @@
+{
+  "statistical": {
+    "freq_weight": 0.7,
+    "missing_weight": 0.5,
+    "hot_boost": 0.05,
+    "cold_penalty": 0.05
+  },
+  "timeseries": {
+    "window_weights_short": 0.35,
+    "window_weights_mid": 0.3,
+    "trend_bonus": 0.35,
+    "sum_tolerance": 4,
+    "sum_iterations": 20
+  },
+  "pattern": {
+    "zone_weight": 0.2,
+    "prime_weight": 0.12,
+    "digit_weight": 0.2,
+    "freq_weight": 0.5,
+    "consecutive_threshold": 0.25
+  },
+  "ml": {
+    "n_estimators": 20,
+    "max_depth": 8,
+    "num_leaves": 31,
+    "learning_rate": 0.05
+  },
+  "markov": {
+    "transition_weight": 0.65,
+    "base_freq_weight": 0.5
+  },
+  "montecarlo": {
+    "num_simulations": 1200,
+    "sum_sigma_range": 3.0,
+    "in_range_bonus": 2.0
+  },
+  "clustering": {
+    "n_clusters_min": 3,
+    "n_clusters_max": 6
+  },
+  "ngram": {
+    "similarity_threshold": 0.2,
+    "adjacent_weight": 0.85,
+    "top_k_similar": 10
+  },
+  "xgboost": {
+    "n_estimators": 40,
+    "max_depth": 7,
+    "learning_rate": 0.05,
+    "subsample": 0.7,
+    "reg_alpha": 0.5
+  },
+  "bayesian": {
+    "prior_strength": 2.0,
+    "freq_weight": 0.55,
+    "recent_weight": 0.3,
+    "missing_weight": 0.1
+  },
+  "kalman": {
+    "process_noise": 0.005,
+    "measurement_noise": 0.2,
+    "trend_weight": 0.3
+  },
+  "poisson": {
+    "alpha": 0.1,
+    "freq_weight": 0.7
+  },
+  "cooccurrence": {
+    "cooccur_threshold": 0.25,
+    "mutual_weight": 0.65,
+    "window_size": 100
+  },
+  "_meta": {
+    "version": 13,
+    "created": "2026-06-21 02:15:23",
+    "description": "应用回测最优组合 (平均命中1.000)",
+    "lottery_type": "ssq",
+    "backtest_score": 1.0
+  }
+}

@@ -1,14 +1,17 @@
 """
-结果合并器 4.0
+结果合并器 5.0
 =============
 跨颗粒度加权投票合并系统。
 
-将 5种颗粒度(50/100/500/1000/全部) × 8种分析方法 = 40组预测结果
-通过自动学习的权重（颗粒度权重 + 方法权重）合并为最终一组号码。
+将 5种颗粒度(50/100/500/1000/全部) × 13种分析方法 = 65组预测结果
+通过独立的复合权重（每对组合各自独立权重）合并为最终一组号码。
 
-与旧版的区别：
-- 权重视为二维矩阵：颗粒度 × 方法，而非两个独立的一维权重
-- 权重从回测中自动学习
+与4.x的区别：
+- 权重改为 65 个独立 composite_weights（key="method_X@Y期"）
+- 不再使用 method_weights × granularity_weights 的交叉乘法
+- 每个(方法, 颗粒度)组合有权重独立，允许负/零/正
+- 权重范围 [-500.0, 500.0]，负值表示反向指标
+- 权重从回测中自动学习，LP线性规划精确求解
 - 支持手动微调权重
 - 支持和值/区间/奇偶等约束条件过滤
 """
@@ -28,39 +31,20 @@ warnings.filterwarnings('ignore')
 #  默认权重
 # ============================================================================
 
-# 5种颗粒度 × 8种方法的40组权重矩阵
-# 索引: granularity_index (0=50, 1=100, 2=500, 3=1000, 4=all)
-#       method_index (0..7)
-DEFAULT_WEIGHT_MATRIX = {
-    # 方法预设权重（13种方法，默认等权）
-    'method_base_weights': {
-        'method_1': 1.0,  # 统计概率
-        'method_2': 1.0,  # 时间序列
-        'method_3': 1.0,  # 模式识别
-        'method_4': 1.0,  # LightGBM
-        'method_5': 1.0,  # 马尔可夫
-        'method_6': 1.0,  # 蒙特卡罗
-        'method_7': 1.0,  # 聚类分析
-        'method_8': 1.0,  # N-gram
-        'method_9': 1.0,  # XGBoost
-        'method_10': 1.0,  # 贝叶斯推断
-        'method_11': 1.0,  # 卡尔曼滤波
-        'method_12': 1.0,  # 泊松回归
-        'method_13': 1.0,  # 共生矩阵
-    },
-    # 颗粒度预设权重
-    'granularity_base_weights': {
-        '50期': 0.9,
-        '100期': 1.0,
-        '500期': 1.1,
-        '1000期': 1.0,
-        '全部期': 0.8,
-    },
-}
+# 5种颗粒度 × 13种方法 = 65组独立复合权重
+# Key格式: "method_X@Y期" (如 "method_1@500期")
+# 每个组合独立，允许正/负/零，范围 [-500.0, 500.0]
+DEFAULT_COMPOSITE_WEIGHTS = {}
+for _mk in [f'method_{i}' for i in range(1, 14)]:
+    for _gn in ['50期', '100期', '500期', '1000期', '全部期']:
+        DEFAULT_COMPOSITE_WEIGHTS[f'{_mk}@{_gn}'] = 1.0
 
 # 颗粒度映射
 GRANULARITY_NAMES = ['50期', '100期', '500期', '1000期', '全部期']
 GRANULARITY_VALUES = [50, 100, 500, 1000, 0]
+
+# 方法 Key 列表
+METHOD_KEYS = [f'method_{i}' for i in range(1, 14)]
 
 METHOD_NAMES = {
     'method_1': '统计概率分析',
@@ -77,6 +61,17 @@ METHOD_NAMES = {
     'method_12': '泊松回归',
     'method_13': '共生矩阵分析',
 }
+
+# 旧格式 → 新格式 转换辅助
+def _convert_old_weights(method_weights=None, granularity_weights=None):
+    """将旧格式 (method_weights + granularity_weights) 转换为 composite_weights"""
+    cw = {}
+    for mk in METHOD_KEYS:
+        for gn in GRANULARITY_NAMES:
+            mw = (method_weights or {}).get(mk, 1.0)
+            gw = (granularity_weights or {}).get(gn, 1.0)
+            cw[f'{mk}@{gn}'] = round(mw * gw, 6)
+    return cw
 
 
 class ResultMerger:
@@ -103,35 +98,34 @@ class ResultMerger:
             self.main_range = (1, 35)
             self.aux_range = (1, 12)
 
-        # 当前权重
-        self.method_weights = dict(
-            DEFAULT_WEIGHT_MATRIX['method_base_weights'])
-        self.granularity_weights = dict(
-            DEFAULT_WEIGHT_MATRIX['granularity_base_weights'])
+        # 当前权重：65个独立 composite_weights
+        self.composite_weights = dict(DEFAULT_COMPOSITE_WEIGHTS)
 
-    def set_weights(self, method_weights: Dict[str, float] = None,
+    def set_weights(self, composite_weights: Dict[str, float] = None,
+                    method_weights: Dict[str, float] = None,
                     gran_weights: Dict[str, float] = None):
-        """手动设置权重"""
-        if method_weights:
-            self.method_weights.update(method_weights)
-        if gran_weights:
-            self.granularity_weights.update(gran_weights)
+        """手动设置权重。兼容旧格式 (method_weights + gran_weights) 自动转换。"""
+        if composite_weights:
+            self.composite_weights.update(composite_weights)
+        if method_weights or gran_weights:
+            # 兼容旧格式：自动转换为 composite
+            converted = _convert_old_weights(method_weights, gran_weights)
+            self.composite_weights.update(converted)
 
     def compute_weight(self, granularity_text: str, method_key: str) -> float:
         """
-        计算某组(颗粒度, 方法)的综合权重。
-        综合权重 = 方法权重 × 颗粒度权重
+        获取某组(颗粒度, 方法)的综合权重。
+        直接查找 composite_weights["method_X@Y期"]。
         """
-        mw = self.method_weights.get(method_key, 1.0)
-        gw = self.granularity_weights.get(granularity_text, 1.0)
-        return mw * gw
+        key = f'{method_key}@{granularity_text}'
+        return self.composite_weights.get(key, 1.0)
 
     def merge_results(self,
                       all_predictions: Dict[str, Dict[str, Dict]],
                       constraints: Optional[Dict] = None
                       ) -> Dict[str, Any]:
         """
-        合并40组预测结果。
+        合并65组预测结果。
 
         参数:
             all_predictions: {
@@ -165,6 +159,9 @@ class ResultMerger:
 
         for gran_name, methods_dict in all_predictions.items():
             for method_key, result in methods_dict.items():
+                # 跳过综合推荐（它不是独立方法，是合并产物）
+                if method_key == 'comprehensive':
+                    continue
                 if 'error' in result or 'predictions' not in result:
                     continue
 
@@ -199,9 +196,9 @@ class ResultMerger:
 
         predicted_aux = self._select_aux(aux_votes, self.aux_count)
 
-        # 贡献排名
+        # 贡献排名（显示全部，按权重降序）
         vote_details.sort(key=lambda x: x['weight'], reverse=True)
-        top_contributors = vote_details[:10]
+        top_contributors = vote_details  # 全部参与合并的组合
 
         return {
             'method': '综合合并推荐',
@@ -310,7 +307,7 @@ class ResultMerger:
                                      backtest_results: pd.DataFrame
                                      ) -> Dict[str, Any]:
         """
-        从回测结果中自动学习最优权重。
+        从回测结果中自动学习最优权重（65个独立组合）。
 
         参数:
             backtest_results: DataFrame with columns:
@@ -318,65 +315,68 @@ class ResultMerger:
 
         返回:
             {
-                'method_weights': {...},
-                'granularity_weights': {...},
+                'composite_weights': {...},  # 65个独立权重
                 'performance_by_method': {...},
                 'performance_by_granularity': {...},
             }
         """
         df = backtest_results.copy()
 
-        # 方法平均表现
+        # 按 (method_key, granularity) 组合统计表现
+        if 'method_key' in df.columns and 'granularity' in df.columns and 'total_hits' in df.columns:
+            combo_perf = df.groupby(['method_key', 'granularity'])['total_hits'].agg(
+                ['mean', 'std', 'max', 'count']
+            )
+            combo_perf = combo_perf[combo_perf['count'] >= 5]
+
+            if not combo_perf.empty:
+                total_mean = combo_perf['mean'].sum()
+                if total_mean > 0:
+                    n_combos = len(combo_perf)
+                    for (mk, gn), row in combo_perf.iterrows():
+                        key = f'{mk}@{gn}'
+                        self.composite_weights[key] = round(
+                            float(row['mean'] / total_mean * n_combos), 4
+                        )
+
+        # 方法平均表现（仅供展示）
+        method_perf = {}
         if 'method_key' in df.columns and 'total_hits' in df.columns:
-            method_perf = df.groupby('method_key')['total_hits'].agg(
-                ['mean', 'std', 'max', 'count']
-            )
-            method_perf = method_perf[method_perf['count'] >= 5]
+            mp = df.groupby('method_key')['total_hits'].agg(['mean', 'std', 'max', 'count'])
+            mp = mp[mp['count'] >= 5]
+            method_perf = mp.to_dict('index') if not mp.empty else {}
 
-            if not method_perf.empty:
-                # 将平均命中转为权重
-                total_mean = method_perf['mean'].sum()
-                if total_mean > 0:
-                    for m in method_perf.index:
-                        self.method_weights[m] = round(
-                            float(method_perf.loc[m, 'mean'] / total_mean * len(method_perf)), 4
-                        )
-
-        # 颗粒度表现
+        # 颗粒度表现（仅供展示）
+        gran_perf = {}
         if 'granularity' in df.columns:
-            gran_perf = df.groupby('granularity')['total_hits'].agg(
-                ['mean', 'std', 'max', 'count']
-            )
-            gran_perf = gran_perf[gran_perf['count'] >= 5]
-
-            if not gran_perf.empty:
-                total_mean = gran_perf['mean'].sum()
-                if total_mean > 0:
-                    for g in gran_perf.index:
-                        self.granularity_weights[g] = round(
-                            float(gran_perf.loc[g, 'mean'] / total_mean * len(gran_perf)), 4
-                        )
+            gp = df.groupby('granularity')['total_hits'].agg(['mean', 'std', 'max', 'count'])
+            gp = gp[gp['count'] >= 5]
+            gran_perf = gp.to_dict('index') if not gp.empty else {}
 
         return {
-            'method_weights': dict(self.method_weights),
-            'granularity_weights': dict(self.granularity_weights),
+            'composite_weights': dict(self.composite_weights),
+            'performance_by_method': method_perf,
+            'performance_by_granularity': gran_perf,
         }
 
     def export_weights(self) -> Dict[str, Any]:
         """导出当前权重配置"""
         return {
             'lottery_type': self.lottery_type,
-            'method_weights': dict(self.method_weights),
-            'granularity_weights': dict(self.granularity_weights),
+            'composite_weights': dict(self.composite_weights),
             'export_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
 
     def import_weights(self, config: Dict[str, Any]):
-        """导入权重配置"""
-        if 'method_weights' in config:
-            self.method_weights.update(config['method_weights'])
-        if 'granularity_weights' in config:
-            self.granularity_weights.update(config['granularity_weights'])
+        """导入权重配置。兼容旧格式 (method_weights + granularity_weights) 自动转换。"""
+        if 'composite_weights' in config:
+            self.composite_weights.update(config['composite_weights'])
+        elif 'method_weights' in config or 'granularity_weights' in config:
+            # 旧格式自动转换
+            converted = _convert_old_weights(
+                config.get('method_weights'),
+                config.get('granularity_weights'))
+            self.composite_weights.update(converted)
 
 
 def batch_merge_to_excel(all_results: Dict[str, Dict[str, Dict]],
@@ -424,18 +424,19 @@ def batch_merge_to_excel(all_results: Dict[str, Dict[str, Dict]],
             vote_df = pd.DataFrame(merged['vote_details'])
             vote_df.to_excel(writer, sheet_name="投票详情", index=False)
 
-        # Sheet 3: 权重配置
+        # Sheet 3: 权重配置（65个独立组合）
         weight_data = [
-            ["权重配置", ""],
-            ["", ""],
-            ["方法权重", ""],
+            ["权重配置 (65个独立组合)", ""],
+            ["组合键 (方法@颗粒度)", "权重值"],
         ]
-        for k, v in merger.method_weights.items():
-            weight_data.append([f"  {k} ({METHOD_NAMES.get(k, '')})", f"{v:.4f}"])
-        weight_data.append(["", ""])
-        weight_data.append(["颗粒度权重", ""])
-        for k, v in merger.granularity_weights.items():
-            weight_data.append([f"  {k}", f"{v:.4f}"])
+        # 按绝对值降序排列
+        sorted_weights = sorted(
+            merger.composite_weights.items(),
+            key=lambda x: abs(x[1]), reverse=True)
+        for k, v in sorted_weights:
+            mk, gn = k.split('@', 1)
+            method_name = METHOD_NAMES.get(mk, mk)
+            weight_data.append([f"{method_name} @ {gn}", f"{v:.4f}"])
         pd.DataFrame(weight_data, columns=["项目", "值"]).to_excel(
             writer, sheet_name="权重配置", index=False)
 
@@ -461,7 +462,20 @@ def batch_merge_to_excel(all_results: Dict[str, Dict[str, Dict]],
 
 
 if __name__ == "__main__":
-    print("结果合并器 4.0 - 跨颗粒度加权投票系统")
+    print("结果合并器 5.0 - 跨颗粒度加权投票系统")
+    print(f"权重模型: 13方法 × 5颗粒度 = 65个独立复合权重")
+    print(f"权重范围: [-500.0, 500.0]，允许正/负/零")
     merger = ResultMerger('ssq')
-    print(f"方法权重: {merger.method_weights}")
-    print(f"颗粒度权重: {merger.granularity_weights}")
+    print(f"已初始化 {len(merger.composite_weights)} 个 composite_weights")
+    # 展示所有权重
+    for key, w in sorted(merger.composite_weights.items()):
+        print(f"  {key}: {w:.4f}")
+    # 测试旧格式兼容
+    print("\n旧格式兼容测试:")
+    old_config = {
+        'method_weights': {'method_1': 2.0, 'method_2': 0.5},
+        'granularity_weights': {'50期': 1.5, '500期': 0.8},
+    }
+    merger.import_weights(old_config)
+    print(f"  导入旧格式后 method_1@50期 = {merger.compute_weight('50期', 'method_1'):.4f}")
+    print(f"  期望: 2.0×1.5 = 3.0")

@@ -2041,7 +2041,7 @@ class LotteryPredictor:
                                weights: Optional[Dict[str, float]] = None
                                ) -> Dict[str, Any]:
         """
-        综合8种方法的预测结果，加权投票产生最终推荐。
+        综合13种方法的预测结果，加权投票产生最终推荐。
 
         参数:
             method_results: {method_key: result_dict} 各方法的预测结果

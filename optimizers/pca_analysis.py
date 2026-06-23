@@ -70,27 +70,16 @@ def sample_random_params(rng: np.random.RandomState) -> Dict[str, Dict]:
 
 
 def sample_random_weights(rng: np.random.RandomState) -> Dict:
-    """随机采样合并权重"""
-    method_range = WEIGHT_SEARCH_SPACE['method_weight_range']
-    gran_range = WEIGHT_SEARCH_SPACE['granularity_weight_range']
+    """随机采样 65 个独立 composite_weights"""
+    w_min, w_max = WEIGHT_SEARCH_SPACE['composite_weight_range']
 
-    method_weights = {}
+    composite_weights = {}
     for i in range(1, 14):
-        method_weights[f'method_{i}'] = round(
-            rng.uniform(*method_range), 4)
+        for gn in ['50期', '100期', '500期', '1000期', '全部期']:
+            key = f'method_{i}@{gn}'
+            composite_weights[key] = round(rng.uniform(w_min, w_max), 4)
 
-    gran_weights = {
-        '50期': round(rng.uniform(*gran_range), 4),
-        '100期': round(rng.uniform(*gran_range), 4),
-        '500期': round(rng.uniform(*gran_range), 4),
-        '1000期': round(rng.uniform(*gran_range), 4),
-        '全部期': round(rng.uniform(*gran_range), 4),
-    }
-
-    return {
-        'method_weights': method_weights,
-        'granularity_weights': gran_weights,
-    }
+    return {'composite_weights': composite_weights}
 
 
 def params_to_vector(params: Dict) -> np.ndarray:

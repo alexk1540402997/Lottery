@@ -69,7 +69,7 @@ class LotterySystemGUI:
         self.best_backtest_combo = None  # 最新回测的最优(参数+权重)
         self.backtest_engine = None
         self.backtest_runner = None
-        self.config_mgr = ConfigManager()
+        self.config_mgr = ConfigManager(lottery_type=self.lottery_type)
 
         # 线程安全
         self.running = False
@@ -121,10 +121,11 @@ class LotterySystemGUI:
         left_canvas.pack(side=tk.LEFT, fill=tk.BOTH)
         left_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # 鼠标滚轮支持
-        def _on_mousewheel(event):
+        # 鼠标滚轮支持（仅绑定左侧面板，不影响右侧内容区）
+        def _on_left_mousewheel(event):
             left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        for w in (left_canvas, left_panel, left_outer):
+            w.bind("<MouseWheel>", _on_left_mousewheel)
 
         # 右侧：Notebook (Tab区域)
         right_panel = tk.Frame(main_frame, bg=self.colors['bg'])
@@ -154,13 +155,13 @@ class LotterySystemGUI:
         self._build_log_tab()
 
         # === 底部状态栏 ===
-        status_frame = tk.Frame(self.root, bg=self.colors['text'], height=30)
+        status_frame = tk.Frame(self.root, bg=self.colors['primary'], height=32)
         status_frame.pack(fill=tk.X, side=tk.BOTTOM)
         status_frame.pack_propagate(False)
 
-        self.status_label = tk.Label(status_frame, text="就绪",
-                                    font=("Microsoft YaHei", 9),
-                                    fg="white", bg=self.colors['text'],
+        self.status_label = tk.Label(status_frame, text="  就绪",
+                                    font=("Microsoft YaHei", 9, "bold"),
+                                    fg="white", bg=self.colors['primary'],
                                     anchor=tk.W)
         self.status_label.pack(side=tk.LEFT, padx=15, pady=4)
 
@@ -517,42 +518,89 @@ class LotterySystemGUI:
         weight_frame.pack(fill=tk.X, padx=15, pady=5)
 
         self.weight_vars = {}
-        wf1 = tk.Frame(weight_frame, bg=self.colors['bg'])
-        wf1.pack(fill=tk.X, padx=10, pady=5)
-        for i, (mk, mname) in enumerate(METHOD_NAMES_NEW.items()):
-            col = i % 4
-            row = i // 4
-            f = tk.Frame(wf1 if i < 4 else (
-                tk.Frame(weight_frame, bg=self.colors['bg'])), bg=self.colors['bg'])
-            f.pack(side=tk.LEFT, padx=8, pady=3)
+        # 标题
+        tk.Label(weight_frame, text="手动调整权重 (65组: 方法@颗粒度, 范围[-500.0,500.0])",
+                font=("Microsoft YaHei", 9), bg=self.colors['bg'],
+                fg=self.colors['text']).pack(anchor=tk.W, padx=10, pady=(5, 0))
 
-            tk.Label(f, text=f"{mname[:4]}:", font=("Microsoft YaHei", 8),
-                    bg=self.colors['bg']).pack(side=tk.LEFT)
-            var = tk.StringVar(value="1.0")
-            self.weight_vars[mk] = var
-            tk.Entry(f, textvariable=var, width=5, font=("Microsoft YaHei", 8)).pack(
-                side=tk.LEFT, padx=2)
+        # 使用 Text 组件显示和编辑 65 个 composite_weights
+        wt_frame = tk.Frame(weight_frame, bg=self.colors['bg'])
+        wt_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        if len(METHOD_NAMES_NEW) > 4:
-            wf2 = tk.Frame(weight_frame, bg=self.colors['bg'])
-            wf2.pack(fill=tk.X, padx=10, pady=5)
-            # 重新布局剩余方法
-            for i, (mk, mname) in enumerate(METHOD_NAMES_NEW.items()):
-                if i < 4:
-                    continue
-                f = tk.Frame(wf2, bg=self.colors['bg'])
-                f.pack(side=tk.LEFT, padx=8, pady=3)
-                tk.Label(f, text=f"{mname[:4]}:", font=("Microsoft YaHei", 8),
-                        bg=self.colors['bg']).pack(side=tk.LEFT)
-                var = tk.StringVar(value="1.0")
-                self.weight_vars[mk] = var
-                tk.Entry(f, textvariable=var, width=5, font=("Microsoft YaHei", 8)).pack(
-                    side=tk.LEFT, padx=2)
+        self.weight_text = tk.Text(wt_frame, font=("Consolas", 9),
+                                   width=55, height=12,
+                                   bg="#1e1e1e", fg="#d4d4d4",
+                                   relief=tk.FLAT, bd=5,
+                                   insertbackground="white")
+        wt_scroll = tk.Scrollbar(wt_frame, command=self.weight_text.yview)
+        self.weight_text.config(yscrollcommand=wt_scroll.set)
+        self.weight_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        wt_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 预填默认权重
+        self._reset_weight_text()
+
+        # 按钮行
+        btn_row = tk.Frame(weight_frame, bg=self.colors['bg'])
+        btn_row.pack(fill=tk.X, padx=10, pady=5)
+        tk.Button(btn_row, text="重置为默认", command=self._reset_weight_text,
+                 font=("Microsoft YaHei", 9), bg=self.colors['primary'],
+                 fg="white", relief=tk.FLAT, padx=8, pady=2,
+                 cursor="hand2").pack(side=tk.LEFT, padx=2)
+        tk.Button(btn_row, text="从当前配置加载", command=self._load_weights_to_editor,
+                 font=("Microsoft YaHei", 9), bg=self.colors['primary'],
+                 fg="white", relief=tk.FLAT, padx=8, pady=2,
+                 cursor="hand2").pack(side=tk.LEFT, padx=2)
 
         tk.Button(weight_frame, text="应用权重", command=self._apply_weights,
                  font=("Microsoft YaHei", 10), bg=self.colors['success'],
                  fg="white", relief=tk.FLAT, padx=10, pady=3,
                  cursor="hand2").pack(pady=8)
+
+        # 版本历史浏览区
+        ver_frame = tk.LabelFrame(self.tab_optimize, text="版本历史（参数+权重同步快照）",
+                                  font=("Microsoft YaHei", 11),
+                                  bg=self.colors['bg'],
+                                  fg=self.colors['text'])
+        ver_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+
+        tree_frame = tk.Frame(ver_frame, bg=self.colors['bg'])
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        columns = ("#", "类型", "时间", "得分", "描述")
+        self.version_tree = ttk.Treeview(tree_frame, columns=columns,
+                                          show="headings", height=8,
+                                          selectmode="browse")
+        self.version_tree.heading("#", text="#")
+        self.version_tree.heading("类型", text="类型")
+        self.version_tree.heading("时间", text="创建时间")
+        self.version_tree.heading("得分", text="回测得份")
+        self.version_tree.heading("描述", text="描述")
+        self.version_tree.column("#", width=40, anchor="center")
+        self.version_tree.column("类型", width=60, anchor="center")
+        self.version_tree.column("时间", width=140)
+        self.version_tree.column("得分", width=70, anchor="center")
+        self.version_tree.column("描述", width=280)
+
+        tree_scroll = tk.Scrollbar(tree_frame, orient=tk.VERTICAL,
+                                   command=self.version_tree.yview)
+        self.version_tree.config(yscrollcommand=tree_scroll.set)
+        self.version_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 版本操作按钮
+        ver_btn_frame = tk.Frame(ver_frame, bg=self.colors['bg'])
+        ver_btn_frame.pack(fill=tk.X, padx=10, pady=(0, 8))
+
+        tk.Button(ver_btn_frame, text="查看版本详情", command=self._view_version_detail,
+                 font=("Microsoft YaHei", 9), bg=self.colors['primary'],
+                 fg="white", relief=tk.FLAT, padx=10, pady=3,
+                 cursor="hand2").pack(side=tk.LEFT, padx=3)
+
+        tk.Button(ver_btn_frame, text="应用此版本", command=self._apply_selected_version,
+                 font=("Microsoft YaHei", 9), bg=self.colors['success'],
+                 fg="white", relief=tk.FLAT, padx=10, pady=3,
+                 cursor="hand2").pack(side=tk.LEFT, padx=3)
 
     # ========================================================================
     #  日志Tab
@@ -581,7 +629,7 @@ class LotterySystemGUI:
     # ========================================================================
 
     def _on_lottery_type_changed(self):
-        """彩票类型切换"""
+        """彩票类型切换（同步切换配置存储）"""
         lt = self.lottery_var.get()
         if lt != self.lottery_type:
             self.lottery_type = lt
@@ -589,7 +637,10 @@ class LotterySystemGUI:
             self.all_predictions = {}
             if self.predictor:
                 self.predictor = LotteryPredictor(lt)
-            self._log(f"彩票类型已切换为: {lt}")
+            # ★ 切换到对应彩票类型的参数/权重存储
+            self.config_mgr.switch_lottery_type(lt)
+            self._log(f"彩票类型已切换为: {lt} (配置存储: {lt})")
+            self._refresh_optimize_display()
 
     def _select_file(self):
         """选择Excel数据文件"""
@@ -682,6 +733,21 @@ class LotterySystemGUI:
 
         def _run():
             try:
+                # ★ 读取当前最优参数和权重（打通回测→预测反哺通道）
+                config = self.config_mgr.get_current_config()
+                current_params = config['params']
+                current_weights = config['weights'].get('composite_weights', {})
+                # 去除 _meta 避免传入方法
+                current_params = {k: v for k, v in current_params.items()
+                                  if not k.startswith('_')}
+
+                # 日志确认参数来源
+                param_version = config['params'].get('_meta', {}).get('version', 0)
+                weight_version = config['weights'].get('_meta', {}).get('version', 0)
+                self.root.after(0, lambda: self._log(
+                    f'预测使用: 参数v{param_version}, 权重v{weight_version} '
+                    f'({len(current_weights)}个composite_weights)'))
+
                 all_results = {}
                 total = len(selected_grans)
                 for i, gname in enumerate(selected_grans):
@@ -701,10 +767,13 @@ class LotterySystemGUI:
                         f"正在分析: {g}..."))
                     self._log(f"分析中: {gname} ({len(train_data)}期)")
 
-                    results = self.predictor.predict_all(train_data, seed=42)
+                    # ★ 传递当前最优参数运行预测
+                    results = self.predictor.predict_all(
+                        train_data, params=current_params, seed=42)
                     all_results[gname] = results
 
                 self.all_predictions = all_results
+                self.all_composite_weights = current_weights
                 self.root.after(0, lambda: self._on_prediction_done(all_results))
             except Exception as e:
                 self.root.after(0, lambda: self._on_operation_error(str(e)))
@@ -726,25 +795,64 @@ class LotterySystemGUI:
         self._update_status("预测完成!")
         self._log(f"✓ 预测完成! 颗粒度: {list(all_results.keys())}", "success")
 
-        # 显示所有颗粒度的结果（每个方法Tab内按颗粒度分段展示）
-        tab_map = {'comprehensive': '综合推荐'}
-        for mk, mname in METHOD_NAMES_NEW.items():
-            tab_map[mk] = mname
-
         # 先清空所有Tab
         for text_widget in self.pred_tabs.values():
             text_widget.delete(1.0, tk.END)
 
-        # 按方法聚合：收集每个方法在各颗粒度下的结果
-        method_results = {}  # {tab_name: [(gran_name, result), ...]}
+        # ════════════════════════════════════════════════════════
+        # ★ 综合推荐: 用 65 个 composite_weights 合并所有65组预测
+        # ════════════════════════════════════════════════════════
+        comp_text = self.pred_tabs.get('综合推荐')
+        if comp_text:
+            cw = getattr(self, 'all_composite_weights', {})
+            n_cw = len(cw)
+
+            from merger import ResultMerger
+            merger = ResultMerger(self.lottery_type)
+            if cw:
+                merger.import_weights({'composite_weights': cw})
+
+            merged = merger.merge_results(all_results)
+
+            comp_text.insert(tk.END, "╔══════════════════════════════════╗\n")
+            comp_text.insert(tk.END, "║   综 合 合 并 推 荐             ║\n")
+            comp_text.insert(tk.END, "╚══════════════════════════════════╝\n\n")
+            comp_text.insert(tk.END,
+                f"合并方式: {merged['total_groups']}组预测 × 65个独立复合权重\n"
+                f"权重来源: {'当前配置(' + str(n_cw) + '个)' if cw else '默认全1.0'}\n\n")
+
+            comp_text.insert(tk.END,
+                f"★ 推荐主球: {' '.join(f'{n:02d}' for n in merged['predictions'][merger.main_name])}\n"
+                f"★ 推荐辅助球: {' '.join(f'{n:02d}' for n in merged['predictions'][merger.aux_name])}\n\n")
+
+            # 全部贡献组合（按权重降序）
+            if merged.get('top_contributors'):
+                comp_text.insert(tk.END, f"━━━ 全部贡献组合 (共{len(merged['top_contributors'])}组) ━━━\n")
+                for tc in merged['top_contributors']:
+                    comp_text.insert(tk.END,
+                        f"  {tc['method_name']} @ {tc['granularity']}: "
+                        f"权重={tc['weight']:+.4f}\n")
+                comp_text.insert(tk.END, "\n")
+
+        # ════════════════════════════════════════════════════════
+        # 13个方法Tab: 按颗粒度分段展示各自预测结果
+        # ════════════════════════════════════════════════════════
+        tab_map = {}
+        for mk, mname in METHOD_NAMES_NEW.items():
+            tab_map[mk] = mname
+
+        # 按方法聚合
+        method_results = {}
         for gran_name, gran_results in all_results.items():
             for key, result in gran_results.items():
+                if key == 'comprehensive':
+                    continue  # 综合推荐已单独处理
                 tab_name = tab_map.get(key, key)
                 if tab_name not in method_results:
                     method_results[tab_name] = []
                 method_results[tab_name].append((gran_name, result))
 
-        # 渲染每个Tab
+        # 渲染每个方法Tab
         for tab_name, gran_list in method_results.items():
             if tab_name not in self.pred_tabs:
                 continue
@@ -861,6 +969,10 @@ class LotterySystemGUI:
             num_workers=num_workers,
         )
 
+        # 自动选择并启用最优优化器 (BO → CMA-ES → SA)
+        optimizer_name = self.backtest_engine.init_optimizer()
+        self._log(f"优化器: {optimizer_name}")
+
         def on_progress(pct, msg):
             self.root.after(0, lambda: self._update_status(
                 f"回测中: {msg}"))
@@ -963,17 +1075,14 @@ class LotterySystemGUI:
                 f"{pr['total_hits']:>2}中 "
                 f"(主{pr['main_hits']}+辅{pr['aux_hits']})\n")
 
-        # 最优权重
-        text.insert(tk.END, "\n━━━ 最优方法权重 ━━━\n")
-        mw = best['weights'].get('method_weights', {})
-        for mk, w in sorted(mw.items(), key=lambda x: x[1], reverse=True):
+        # 最优权重（65个独立 composite_weights，按绝对值降序）
+        cw = best['weights'].get('composite_weights', {})
+        sorted_cw = sorted(cw.items(), key=lambda x: abs(x[1]), reverse=True)
+        text.insert(tk.END, f"\n━━━ 全部复合权重 (共{len(cw)}个) ━━━\n")
+        for key, w in sorted_cw:
+            mk, gn = key.split('@', 1)
             mname = METHOD_NAMES_NEW.get(mk, mk)
-            text.insert(tk.END, f"  {mname}: {w:.4f}\n")
-
-        text.insert(tk.END, "\n━━━ 最优颗粒度权重 ━━━\n")
-        gw = best['weights'].get('granularity_weights', {})
-        for gn, w in sorted(gw.items(), key=lambda x: x[1], reverse=True):
-            text.insert(tk.END, f"  {gn}: {w:.4f}\n")
+            text.insert(tk.END, f"  {mname} @ {gn}: {w:+.4f}\n")
 
         # 最优模型参数
         params = best.get('params', {})
@@ -1010,7 +1119,7 @@ class LotterySystemGUI:
             backtest_score=best['avg_total_hits'],
         )
         self.config_mgr.save_weights_version(
-            mw, gw,
+            composite_weights=cw,
             description=f"回测优化权重 (平均命中{best['avg_total_hits']:.3f})",
             backtest_score=best['avg_total_hits'],
         )
@@ -1094,20 +1203,19 @@ class LotterySystemGUI:
         text.insert(tk.END, f"参数版本总数: {config['param_versions_count']}\n")
         text.insert(tk.END, f"权重版本总数: {config['weight_versions_count']}\n\n")
 
-        # 当前方法权重
-        mw = config['weights'].get('method_weights', {})
-        if mw:
-            text.insert(tk.END, "━━━ 当前方法权重 ━━━\n")
-            for mk, w in sorted(mw.items(), key=lambda x: x[1], reverse=True):
+        # 当前 composite_weights（全部，按绝对值降序）
+        cw = config['weights'].get('composite_weights', {})
+        if cw:
+            text.insert(tk.END,
+                f"━━━ 当前复合权重 (全部{len(cw)}个) ━━━\n")
+            sorted_cw = sorted(cw.items(), key=lambda x: abs(x[1]), reverse=True)
+            for key, w in sorted_cw:
+                if '@' in key:
+                    mk, gn = key.split('@', 1)
+                else:
+                    mk, gn = key, '?'
                 mname = METHOD_NAMES_NEW.get(mk, mk)
-                text.insert(tk.END, f"  {mname}: {w:.4f}\n")
-
-        # 当前颗粒度权重
-        gw = config['weights'].get('granularity_weights', {})
-        if gw:
-            text.insert(tk.END, "\n━━━ 当前颗粒度权重 ━━━\n")
-            for gn, w in sorted(gw.items(), key=lambda x: x[1], reverse=True):
-                text.insert(tk.END, f"  {gn}: {w:.4f}\n")
+                text.insert(tk.END, f"  {mname} @ {gn}: {w:+.4f}\n")
 
         # 当前模型参数
         text.insert(tk.END, "\n━━━ 当前模型参数 ━━━\n")
@@ -1137,9 +1245,12 @@ class LotterySystemGUI:
         if not has_params:
             text.insert(tk.END, "  (使用默认参数)\n")
 
+        self._refresh_version_list()
+
     def _rollback_config(self):
-        """回退配置到上一版本"""
+        """回退配置到上一版本（参数+权重同步回退）"""
         param_versions = self.config_mgr.list_param_versions()
+        weight_versions = self.config_mgr.list_weight_versions()
         if len(param_versions) < 2:
             messagebox.showinfo("提示", "只有默认版本，无法回退")
             return
@@ -1147,13 +1258,23 @@ class LotterySystemGUI:
         # 回退到上一版本（索引1，因为0是最新的）
         target = param_versions[1] if len(param_versions) > 1 else param_versions[0]
         ok, msg, _ = self.config_mgr.rollback_params(target['version'])
-        if ok:
-            self._log(f"✓ {msg}", "success")
-            self._refresh_optimize_display()
-            messagebox.showinfo("成功", msg)
-        else:
+        if not ok:
             self._log(f"✗ {msg}", "error")
             messagebox.showerror("失败", msg)
+            return
+
+        # 同步回退权重到对应版本
+        if len(weight_versions) >= 2:
+            wt_target = weight_versions[min(1, len(weight_versions) - 1)]
+            wok, wmsg, _ = self.config_mgr.rollback_weights(wt_target['version'])
+            if wok:
+                msg += f"\n{wmsg}"
+                self._log(f"✓ {wmsg}", "success")
+
+        self._log(f"✓ {msg}", "success")
+        self._refresh_optimize_display()
+        self._refresh_version_list()
+        messagebox.showinfo("成功", msg)
 
     def _reset_config(self):
         """重置为默认配置"""
@@ -1210,10 +1331,9 @@ class LotterySystemGUI:
                 backtest_score=avg_hits,
             )
             # 保存权重
-            mw = weights.get('method_weights', {})
-            gw = weights.get('granularity_weights', {})
+            cw = weights.get('composite_weights', {})
             self.config_mgr.save_weights_version(
-                mw, gw,
+                composite_weights=cw,
                 description=f"应用回测最优权重 (平均命中{avg_hits:.3f})",
                 backtest_score=avg_hits,
             )
@@ -1223,32 +1343,279 @@ class LotterySystemGUI:
                 f"最优组合已应用!\n\n"
                 f"平均命中: {avg_hits:.3f}\n"
                 f"参数方法数: {len(params)}\n"
-                f"权重方法数: {len(mw)}\n\n"
+                f"权重组合数: {len(cw)}\n\n"
                 f"优化Tab可查看详情。")
         except Exception as e:
             self._log(f"✗ 应用最优组合失败: {e}", "error")
             messagebox.showerror("失败", f"应用失败: {e}")
 
+    # ========================================================================
+    #  版本历史浏览
+    # ========================================================================
+
+    def _refresh_version_list(self):
+        """刷新版本历史列表（参数+权重的合并视图）"""
+        self.version_tree.delete(*self.version_tree.get_children())
+
+        param_versions = self.config_mgr.list_param_versions()
+        weight_versions = self.config_mgr.list_weight_versions()
+
+        # 构建权重版本的版本号→条目映射
+        wv_map = {v['version']: v for v in weight_versions}
+
+        # 按时间倒序合并显示（最新的在前）
+        combined = []
+        for pv in param_versions:
+            pv_time = pv.get('created', '')
+            wv = wv_map.get(pv['version'], {})
+            wv_time = wv.get('created', '') if wv else ''
+            combined.append({
+                'version': pv['version'],
+                'type': '参数+权重' if wv else '参数',
+                'time': pv_time,
+                'score': pv.get('backtest_score', 0),
+                'desc': pv.get('description', ''),
+                'param_version': pv['version'],
+                'weight_version': wv.get('version') if wv else None,
+            })
+
+        # 加上只存在于权重列表但不在参数列表中的版本
+        pv_nums = {v['version'] for v in param_versions}
+        for wv in weight_versions:
+            if wv['version'] not in pv_nums:
+                combined.append({
+                    'version': wv['version'],
+                    'type': '权重',
+                    'time': wv.get('created', ''),
+                    'score': wv.get('backtest_score', 0),
+                    'desc': wv.get('description', ''),
+                    'param_version': None,
+                    'weight_version': wv['version'],
+                })
+
+        combined.sort(key=lambda x: x['version'], reverse=True)
+
+        for item in combined:
+            score_str = f"{item['score']:.2f}" if item['score'] else "—"
+            self.version_tree.insert("", tk.END,
+                iid=f"v{item['version']}",
+                values=(item['version'], item['type'], item['time'],
+                       score_str, item['desc']))
+
+        # 存储合并数据供查看/应用使用
+        self._version_data = {f"v{item['version']}": item for item in combined}
+
+    def _view_version_detail(self):
+        """查看选中版本的完整详情"""
+        selection = self.version_tree.selection()
+        if not selection:
+            messagebox.showwarning("提示", "请先在版本列表中选择一个版本")
+            return
+
+        item_id = selection[0]
+        item = self._version_data.get(item_id, {})
+        if not item:
+            return
+
+        # 构建详情文本
+        lines = []
+        lines.append("╔══════════════════════════════════╗")
+        lines.append(f"║  版本 v{item['version']} 详情{' ' * (23 - len(str(item['version'])))}║")
+        lines.append("╚══════════════════════════════════╝")
+        lines.append("")
+        lines.append(f"类型: {item['type']}")
+        lines.append(f"创建时间: {item['time']}")
+        lines.append(f"回测得份: {item['score']}")
+        lines.append(f"描述: {item['desc']}")
+
+        # 加载参数详情
+        if item['param_version']:
+            params = self.config_mgr._load_params_version(item['param_version'])
+            if params:
+                lines.append("")
+                lines.append("━━━ 模型参数 ━━━")
+                param_names = {
+                    'statistical': '方法1: 统计概率分析',
+                    'timeseries': '方法2: 时间序列分析',
+                    'pattern': '方法3: 模式识别分析',
+                    'ml': '方法4: LightGBM',
+                    'markov': '方法5: 马尔可夫',
+                    'montecarlo': '方法6: 蒙特卡罗',
+                    'clustering': '方法7: 聚类分析',
+                    'ngram': '方法8: N-gram',
+                    'xgboost': '方法9: XGBoost',
+                    'bayesian': '方法10: 贝叶斯',
+                    'kalman': '方法11: 卡尔曼',
+                    'poisson': '方法12: 泊松',
+                    'cooccurrence': '方法13: 共生矩阵',
+                }
+                for mk, ml in param_names.items():
+                    mp = params.get(mk, {})
+                    if mp:
+                        lines.append(f"  [{ml}]")
+                        for pn, pv in sorted(mp.items()):
+                            lines.append(f"    {pn}: {pv}")
+
+        # 加载权重详情
+        if item['weight_version']:
+            w = self.config_mgr._load_weights_version(item['weight_version'])
+            if w:
+                cw = w.get('composite_weights', {})
+                if cw:
+                    lines.append("")
+                    lines.append(f"━━━ 复合权重 (共{len(cw)}个) ━━━")
+                    sorted_cw = sorted(cw.items(), key=lambda x: abs(x[1]), reverse=True)
+                    for key, val in sorted_cw:
+                        lines.append(f"  {key}: {val:+.4f}")
+
+        detail = '\n'.join(lines)
+
+        # 弹出详情窗口
+        popup = tk.Toplevel(self.root)
+        popup.title(f"版本 v{item['version']} 详情")
+        popup.geometry("750x600")
+        popup.configure(bg=self.colors['card'])
+
+        detail_text = tk.Text(popup, font=("Consolas", 9),
+                             wrap=tk.WORD, bg=self.colors['card'],
+                             fg=self.colors['text'],
+                             relief=tk.FLAT, bd=10, padx=10, pady=10)
+        detail_scroll = tk.Scrollbar(popup, command=detail_text.yview)
+        detail_text.config(yscrollcommand=detail_scroll.set)
+        detail_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        detail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        detail_text.insert(tk.END, detail)
+        detail_text.config(state=tk.DISABLED)
+
+        tk.Button(popup, text="关闭", command=popup.destroy,
+                 font=("Microsoft YaHei", 10), bg=self.colors['primary'],
+                 fg="white", relief=tk.FLAT, padx=20, pady=5,
+                 cursor="hand2").pack(pady=10)
+
+    def _apply_selected_version(self):
+        """将选中的历史版本应用到当前配置（→自动传递到预测系统）"""
+        selection = self.version_tree.selection()
+        if not selection:
+            messagebox.showwarning("提示", "请先在版本列表中选择一个版本")
+            return
+
+        item_id = selection[0]
+        item = self._version_data.get(item_id, {})
+        if not item:
+            return
+
+        # 确认
+        parts = [f"版本 v{item['version']}"]
+        if item['param_version']:
+            parts.append("模型参数")
+        if item['weight_version']:
+            parts.append("合并权重")
+        confirm = messagebox.askyesno(
+            "确认应用历史版本",
+            f"确认将历史版本 v{item['version']} 应用到当前配置？\n\n"
+            f"类型: {item['type']}\n"
+            f"时间: {item['time']}\n"
+            f"得分: {item['score']}\n"
+            f"描述: {item['desc']}\n\n"
+            f"将覆盖: {' + '.join(parts)}\n\n"
+            f"应用后，下次'开始预测'将使用此版本的参数和权重。"
+        )
+        if not confirm:
+            return
+
+        # 应用参数
+        msgs = []
+        if item['param_version']:
+            ok, msg, _ = self.config_mgr.rollback_params(item['param_version'])
+            if ok:
+                msgs.append(msg)
+            else:
+                self._log(f"✗ 参数回退失败: {msg}", "error")
+                messagebox.showerror("失败", msg)
+                return
+
+        # 应用权重
+        if item['weight_version']:
+            ok, msg, _ = self.config_mgr.rollback_weights(item['weight_version'])
+            if ok:
+                msgs.append(msg)
+            else:
+                self._log(f"✗ 权重回退失败: {msg}", "error")
+                messagebox.showerror("失败", msg)
+                return
+
+        self._log(f"✓ 已应用历史版本 v{item['version']}: {'; '.join(msgs)}", "success")
+        self._refresh_optimize_display()
+        self._refresh_version_list()
+        messagebox.showinfo("成功",
+            f"历史版本 v{item['version']} 已应用!\n\n"
+            f"{chr(10).join(msgs)}\n\n"
+            f"下次'开始预测'将使用此版本的参数和权重。\n"
+            f"(当前配置已写入 logs/current_model_params.json\n"
+            f" 和 logs/current_merge_weights.json)")
+
     def _apply_weights(self):
-        """应用手动调整的权重"""
+        """应用手动调整的权重（从文本编辑器解析）"""
         try:
-            mw = {}
-            for mk, var in self.weight_vars.items():
-                w = float(var.get())
-                if w < 0:
-                    raise ValueError(f"权重不能为负数: {w}")
-                mw[mk] = w
+            raw_text = self.weight_text.get(1.0, tk.END).strip()
+            cw = {}
+            for line in raw_text.split('\n'):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    key, val_str = line.split(':', 1)
+                    key = key.strip()
+                    val_str = val_str.strip()
+                else:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        key = parts[0].strip()
+                        val_str = parts[1].strip()
+                    else:
+                        continue
+                try:
+                    w = float(val_str)
+                except ValueError:
+                    raise ValueError(f"无法解析权重值: {line}")
+                if w < -500.0 or w > 500.0:
+                    raise ValueError(f"权重超出范围 [-500.0, 500.0]: {key}={w}")
+                cw[key] = w
+
+            if not cw:
+                raise ValueError("未找到有效的权重条目")
 
             self.config_mgr.save_weights_version(
-                mw,
-                self.config_mgr.current_weights.get('granularity_weights', {}),
+                composite_weights=cw,
                 description="手动调整",
             )
-            self._log(f"✓ 权重已更新", "success")
+            self._log(f"✓ 权重已更新 ({len(cw)}个)", "success")
             self._refresh_optimize_display()
-            messagebox.showinfo("成功", "权重已更新并保存")
+            messagebox.showinfo("成功", f"权重已更新并保存 ({len(cw)}个组合)")
         except ValueError as e:
             messagebox.showerror("错误", f"权重格式错误: {e}")
+
+    def _reset_weight_text(self):
+        """重置权重编辑器为默认值"""
+        self.weight_text.delete(1.0, tk.END)
+        lines = []
+        for mk in METHOD_NAMES_NEW:
+            for gn in ['50期', '100期', '500期', '1000期', '全部期']:
+                lines.append(f"{mk}@{gn}: 1.0")
+        self.weight_text.insert(tk.END, '\n'.join(lines))
+
+    def _load_weights_to_editor(self):
+        """从当前配置加载权重到编辑器"""
+        config = self.config_mgr.get_current_config()
+        cw = config['weights'].get('composite_weights', {})
+        self.weight_text.delete(1.0, tk.END)
+        lines = []
+        for mk in METHOD_NAMES_NEW:
+            for gn in ['50期', '100期', '500期', '1000期', '全部期']:
+                key = f"{mk}@{gn}"
+                val = cw.get(key, 1.0)
+                lines.append(f"{key}: {val:.4f}")
+        self.weight_text.insert(tk.END, '\n'.join(lines))
 
     # ========================================================================
     #  日志
@@ -1598,7 +1965,7 @@ class SolveWindow:
         lp_status = result.get('lp_status', '?')
 
         # ── 头信息 ──
-        solver_label = 'LP精确求解' if lp_success else 'NNLS降级(近似解)'
+        solver_label = 'LP精确求解' if lp_success else 'LSTSQ降级(近似解)'
         self.result_text.insert(tk.END,
             f"求解模式: 回测最优 + 线性权重求解\n"
             f"求解方法: {solver_label}\n"
@@ -1626,11 +1993,11 @@ class SolveWindow:
                     "\n  → 请增加回测运行时间以优化模型参数。\n"
                     "  → 参数优化后，这些号码被方法覆盖，LP即可精确求解。\n\n")
 
-        # ── ★ 核心产出: 方法权重 ──
-        method_weights = result.get('method_weights', {})
-        if method_weights:
+        # ── ★ 核心产出: 复合权重 (方法@颗粒度) ──
+        composite_weights = result.get('composite_weights', {})
+        if composite_weights:
             self.result_text.insert(tk.END,
-                "━━━ ★ 方法权重（反解结果）━━━\n\n")
+                f"━━━ ★ 复合权重 (全部{len(composite_weights)}个) (方法@颗粒度) ★━━━\n\n")
             method_names = {
                 'method_1': '统计概率', 'method_2': '时间序列', 'method_3': '模式识别',
                 'method_4': 'LightGBM', 'method_5': '马尔可夫', 'method_6': '蒙特卡罗',
@@ -1638,21 +2005,18 @@ class SolveWindow:
                 'method_10': '贝叶斯推断', 'method_11': '卡尔曼滤波', 'method_12': '泊松回归',
                 'method_13': '共生矩阵',
             }
-            sorted_mw = sorted(method_weights.items(), key=lambda x: x[1], reverse=True)
-            for mk, wv in sorted_mw:
+            sorted_cw = sorted(composite_weights.items(),
+                              key=lambda x: abs(x[1]), reverse=True)
+            for ck, wv in sorted_cw:  # 显示全部65个
+                if '@' in ck:
+                    mk, gn = ck.split('@', 1)
+                else:
+                    mk, gn = ck, '?'
                 name = method_names.get(mk, mk)
                 bar = '█' * max(1, int(abs(wv) * 8))
-                self.result_text.insert(tk.END, f"  {name:<10} {wv:>8.4f}  {bar}\n")
-            self.result_text.insert(tk.END, "\n")
-
-        # ── ★ 核心产出: 颗粒度权重 ──
-        gran_weights = result.get('granularity_weights', {})
-        if gran_weights:
-            self.result_text.insert(tk.END,
-                "━━━ ★ 颗粒度权重（反解结果）━━━\n\n")
-            sorted_gw = sorted(gran_weights.items(), key=lambda x: x[1], reverse=True)
-            for gk, wv in sorted_gw:
-                self.result_text.insert(tk.END, f"  {gk:<8} {wv:>8.4f}\n")
+                sign = '+' if wv >= 0 else ''
+                self.result_text.insert(tk.END,
+                    f"  {name:<10} @ {gn:<8} {sign}{wv:>7.4f}  {bar}\n")
             self.result_text.insert(tk.END, "\n")
 
         # ── ★ 验算: 配方能否还原实际号码 ──

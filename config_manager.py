@@ -25,42 +25,85 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from predictor import DEFAULT_PARAMS
-from merger import DEFAULT_WEIGHT_MATRIX
+from merger import DEFAULT_COMPOSITE_WEIGHTS, _convert_old_weights
 
 
 class ConfigManager:
-    """参数和权重配置管理器"""
+    """参数和权重配置管理器（按彩票类型隔离存储）"""
 
-    def __init__(self, base_dir: str = "logs"):
+    def __init__(self, base_dir: str = "logs", lottery_type: str = "ssq"):
         """
         参数:
             base_dir: 日志和配置的基础目录
+            lottery_type: 彩票类型 'ssq' 或 'dlt'（决定存储文件后缀）
         """
         self.base_dir = base_dir
-        self.versions_dir = os.path.join(base_dir, "versions")
-        self.current_params_file = os.path.join(base_dir, "current_model_params.json")
-        self.current_weights_file = os.path.join(base_dir, "current_merge_weights.json")
-        self.index_file = os.path.join(base_dir, "version_index.json")
+        self.lottery_type = lottery_type.lower()
+
+        # 根据彩票类型确定文件后缀（SSQ保持原文件名不变）
+        suffix = '' if self.lottery_type == 'ssq' else f'_{self.lottery_type}'
+        self.versions_dir = os.path.join(base_dir, f"versions{suffix}")
+        self.current_params_file = os.path.join(base_dir, f"current_model_params{suffix}.json")
+        self.current_weights_file = os.path.join(base_dir, f"current_merge_weights{suffix}.json")
+        self.index_file = os.path.join(base_dir, f"version_index{suffix}.json")
 
         # 确保目录存在
         os.makedirs(self.versions_dir, exist_ok=True)
 
-        # 当前参数和权重
-        self.current_params = self._init_default_params()
-        self.current_weights = self._init_default_weights()
+        # 当前参数和权重（从文件加载或创建默认）
+        self.current_params = self._load_or_create_params()
+        self.current_weights = self._load_or_create_weights()
 
         # 版本索引
         self.version_index = self._load_version_index()
 
-    def _init_default_params(self) -> Dict:
-        """初始化默认参数"""
+        # ★ 记录本次启动时的初始状态作为"重置为默认"的基准
+        self.baseline_params = json.loads(json.dumps(self.current_params))
+        self.baseline_weights = json.loads(json.dumps(self.current_weights))
+
+    def switch_lottery_type(self, lottery_type: str):
+        """
+        切换到另一种彩票类型的配置存储。
+
+        保存当前配置后，加载目标类型的配置。
+        SSQ和DLT使用完全独立的文件，互不影响。
+        """
+        new_type = lottery_type.lower()
+        if new_type == self.lottery_type:
+            return  # 相同类型，无需切换
+
+        # 保存当前类型配置
+        self._save_current_params(self.current_params)
+        self._save_current_weights(self.current_weights)
+
+        # 切换文件路径
+        self.lottery_type = new_type
+        suffix = '' if self.lottery_type == 'ssq' else f'_{self.lottery_type}'
+        self.versions_dir = os.path.join(self.base_dir, f"versions{suffix}")
+        self.current_params_file = os.path.join(self.base_dir, f"current_model_params{suffix}.json")
+        self.current_weights_file = os.path.join(self.base_dir, f"current_merge_weights{suffix}.json")
+        self.index_file = os.path.join(self.base_dir, f"version_index{suffix}.json")
+
+        os.makedirs(self.versions_dir, exist_ok=True)
+
+        # 重新加载目标类型配置
+        self.current_params = self._load_or_create_params()
+        self.current_weights = self._load_or_create_weights()
+        self.version_index = self._load_version_index()
+
+        # 更新基线
+        self.baseline_params = json.loads(json.dumps(self.current_params))
+        self.baseline_weights = json.loads(json.dumps(self.current_weights))
+
+    def _load_or_create_params(self) -> Dict:
+        """从文件加载当前参数，如果文件不存在或损坏则创建默认"""
         if os.path.exists(self.current_params_file):
             try:
                 with open(self.current_params_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception:
                 pass
-        # 复制默认参数
+        # 文件不存在或损坏 → 从 DEFAULT_PARAMS 创建
         params = {}
         for key, value in DEFAULT_PARAMS.items():
             params[key] = dict(value)
@@ -73,21 +116,33 @@ class ConfigManager:
         self._save_current_params(params)
         return params
 
-    def _init_default_weights(self) -> Dict:
-        """初始化默认权重"""
+    def _load_or_create_weights(self) -> Dict:
+        """从文件加载当前权重，如果文件不存在或损坏则创建默认"""
         if os.path.exists(self.current_weights_file):
             try:
                 with open(self.current_weights_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                # 自动转换旧格式
+                if 'composite_weights' not in data:
+                    if 'method_weights' in data or 'granularity_weights' in data:
+                        data['composite_weights'] = _convert_old_weights(
+                            data.get('method_weights'),
+                            data.get('granularity_weights'))
+                        data.pop('method_weights', None)
+                        data.pop('granularity_weights', None)
+                        data['_meta']['description'] = (data['_meta'].get('description', '')
+                            + ' [自动转换为composite_weights]')
+                        self._save_current_weights(data)
+                return data
             except Exception:
                 pass
+        # 文件不存在或损坏 → 创建默认
         weights = {
-            'method_weights': dict(DEFAULT_WEIGHT_MATRIX['method_base_weights']),
-            'granularity_weights': dict(DEFAULT_WEIGHT_MATRIX['granularity_base_weights']),
+            'composite_weights': dict(DEFAULT_COMPOSITE_WEIGHTS),
             '_meta': {
                 'version': 0,
                 'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'description': '默认权重配置',
+                'description': '默认权重配置 (65个独立composite_weights)',
             }
         }
         self._save_current_weights(weights)
@@ -173,31 +228,38 @@ class ConfigManager:
 
         return filename
 
-    def save_weights_version(self, method_weights: Dict[str, float],
-                              gran_weights: Dict[str, float],
+    def save_weights_version(self, composite_weights: Dict[str, float] = None,
+                              method_weights: Dict[str, float] = None,
+                              gran_weights: Dict[str, float] = None,
                               description: str = "",
                               backtest_score: float = 0.0
                               ) -> str:
         """
-        保存合并权重版本。
+        保存合并权重版本。兼容旧格式自动转换。
 
         参数:
-            method_weights: 方法权重 {method_key: weight}
-            gran_weights: 颗粒度权重 {gran_name: weight}
+            composite_weights: 65个独立 composite_weights (新格式)
+            method_weights: 方法权重 (旧格式，自动转换)
+            gran_weights: 颗粒度权重 (旧格式，自动转换)
             description: 版本描述
             backtest_score: 回测得分
 
         返回:
             版本文件名
         """
+        # 兼容旧格式自动转换
+        if composite_weights is None and (method_weights or gran_weights):
+            composite_weights = _convert_old_weights(method_weights, gran_weights)
+        if composite_weights is None:
+            composite_weights = dict(DEFAULT_COMPOSITE_WEIGHTS)
+
         version_num = len(self.version_index['weight_versions']) + 1
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"merge_weights_v{version_num:03d}_{ts}.json"
         filepath = os.path.join(self.versions_dir, filename)
 
         weights = {
-            'method_weights': method_weights,
-            'granularity_weights': gran_weights,
+            'composite_weights': composite_weights,
             '_meta': {
                 'version': version_num,
                 'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -341,6 +403,16 @@ class ConfigManager:
                         return json.load(f)
         return None
 
+    def _load_weights_version(self, version_num: int) -> Optional[Dict]:
+        """加载指定版本的权重"""
+        for v in self.version_index['weight_versions']:
+            if v['version'] == version_num:
+                filepath = os.path.join(self.versions_dir, v['filename'])
+                if os.path.exists(filepath):
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+        return None
+
     def get_current_config(self) -> Dict[str, Any]:
         """获取当前完整配置"""
         return {
@@ -355,13 +427,24 @@ class ConfigManager:
     # ========================================================================
 
     def reset_to_defaults(self) -> Tuple[bool, str]:
-        """重置为默认参数和权重"""
+        """
+        重置为本次程序启动时的初始配置（baseline）。
+
+        不删除任何历史版本，只是将当前配置回退到启动时的状态。
+        后续通过 save_params_version / save_weights_version 创建的新版本
+        会按原有顺序号继续往后叠加。
+        """
         try:
-            self.current_params = self._init_default_params()
-            self.current_weights = self._init_default_weights()
+            baseline_p = self.baseline_params
+            baseline_w = self.baseline_weights
+            pv = baseline_p.get('_meta', {}).get('version', 0)
+            wv = baseline_w.get('_meta', {}).get('version', 0)
+
+            self.current_params = json.loads(json.dumps(baseline_p))
+            self.current_weights = json.loads(json.dumps(baseline_w))
             self._save_current_params(self.current_params)
             self._save_current_weights(self.current_weights)
-            return True, "已重置为默认配置"
+            return True, f"已重置为启动时配置 (参数v{pv}, 权重v{wv})"
         except Exception as e:
             return False, f"重置失败: {e}"
 

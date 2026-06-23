@@ -130,10 +130,9 @@ PARAM_SEARCH_SPACE = {
     },
 }
 
-# 合并权重搜索空间（连续值，随机采样）
+# 合并权重搜索空间（65个独立 composite_weights，范围 [-500.0, 500.0]）
 WEIGHT_SEARCH_SPACE = {
-    'method_weight_range': (0.3, 3.0),       # 方法权重范围
-    'granularity_weight_range': (0.3, 3.0),  # 颗粒度权重范围
+    'composite_weight_range': (-500.0, 500.0),  # 每个(方法×颗粒度)组合的独立权重范围
 }
 
 
@@ -324,6 +323,61 @@ class BacktestEngine:
         self._log(f"[SA] 已初始化 (维度={stats.get('n_active_chains', '?')}, "
                   f"链数={n_chains})")
         return True
+
+    def init_optimizer(self) -> str:
+        """
+        自动选择并初始化最优优化器。
+
+        策略: BO(≤30维) → CMA-ES → SA → 随机搜索
+
+        返回:
+            'BO' | 'CMA-ES' | 'SA' | 'random'
+        """
+        if not OPTIMIZERS_AVAILABLE:
+            self._log("[优化器] scipy不可用，使用随机搜索")
+            return 'random'
+
+        # 获取参数维度
+        from optimizers.bo_surrogate import ParameterEncoder
+        encoder = ParameterEncoder(PARAM_SEARCH_SPACE)
+        n_dims = encoder.n_free
+        self._log(f"[优化器] 参数空间: 总{encoder.n_total}个, 自由{n_dims}个")
+
+        # 始终优先尝试 BO
+        if n_dims > 30:
+            self._log(f"[优化器] ⚠ 维度{n_dims}>30, BO可能较慢，但仍将尝试")
+        self._log(f"[优化器] 尝试贝叶斯优化(BO)...")
+        try:
+            self.init_bo('backtest')
+            if self.use_bo:
+                self._log(f"[优化器] ✅ 已启用: 贝叶斯优化 (BO), 维度={n_dims}")
+                return 'BO'
+        except Exception as e:
+            self._log(f"[优化器] BO 初始化失败: {e}")
+
+        # BO失败 → 尝试 CMA-ES
+        self._log(f"[优化器] BO不可用, 尝试CMA-ES...")
+        try:
+            self.init_cmaes()
+            if self.use_cmaes:
+                self._log("[优化器] ✅ 已启用: CMA-ES")
+                return 'CMA-ES'
+        except Exception as e:
+            self._log(f"[优化器] CMA-ES 初始化失败: {e}")
+
+        # CMA-ES失败 → 尝试 SA（模拟退火）
+        self._log(f"[优化器] 尝试模拟退火(SA)...")
+        try:
+            self.init_sa()
+            if self.use_sa:
+                self._log("[优化器] ✅ 已启用: 模拟退火 (SA)")
+                return 'SA'
+        except Exception as e:
+            self._log(f"[优化器] SA 初始化失败: {e}")
+
+        # 全部失败 → 随机搜索
+        self._log("[优化器] 所有优化器不可用，使用随机搜索")
+        return 'random'
 
     # ========================================================================
     #  去重日志
@@ -555,35 +609,27 @@ class BacktestEngine:
         return new_params
 
     def _sample_weights(self, rng: np.random.RandomState) -> Dict[str, Dict]:
-        """随机采样一组合并权重"""
-        m_min, m_max = WEIGHT_SEARCH_SPACE['method_weight_range']
-        g_min, g_max = WEIGHT_SEARCH_SPACE['granularity_weight_range']
+        """随机采样 65 个独立 composite_weights（范围 [-500.0, 500.0]）"""
+        w_min, w_max = WEIGHT_SEARCH_SPACE['composite_weight_range']
 
-        mw = {}
+        cw = {}
         for mk in METHOD_NAMES_NEW:
-            mw[mk] = round(float(rng.uniform(m_min, m_max)), 4)
+            for gn in GRANULARITY_NAMES:
+                key = f'{mk}@{gn}'
+                cw[key] = round(float(rng.uniform(w_min, w_max)), 4)
 
-        gw = {}
-        for gn in GRANULARITY_NAMES:
-            gw[gn] = round(float(rng.uniform(g_min, g_max)), 4)
-
-        return {'method_weights': mw, 'granularity_weights': gw}
+        return {'composite_weights': cw}
 
     def _perturb_weights(self, rng: np.random.RandomState,
                          base_weights: Dict, sigma: float = 0.15
                          ) -> Dict[str, Dict]:
-        """在最优权重基础上加高斯噪声"""
-        mw = {}
-        for mk, w in base_weights.get('method_weights', {}).items():
+        """在最优 composite_weights 基础上加高斯噪声"""
+        cw = {}
+        for key, w in base_weights.get('composite_weights', {}).items():
             noise = rng.normal(0, sigma)
-            mw[mk] = round(max(0.1, w + noise), 4)
+            cw[key] = round(max(-500.0, min(500.0, w + noise)), 4)
 
-        gw = {}
-        for gn, w in base_weights.get('granularity_weights', {}).items():
-            noise = rng.normal(0, sigma)
-            gw[gn] = round(max(0.1, w + noise), 4)
-
-        return {'method_weights': mw, 'granularity_weights': gw}
+        return {'composite_weights': cw}
 
     def _determine_phase(self) -> str:
         """确定当前搜索阶段"""
@@ -964,8 +1010,7 @@ class BacktestEngine:
                             for mk, mp in params.items()
                         },
                         'weights_snapshot': {
-                            'method_weights': dict(weights.get('method_weights', {})),
-                            'granularity_weights': dict(weights.get('granularity_weights', {})),
+                            'composite_weights': dict(weights.get('composite_weights', {})),
                         },
                     }
                     self.history_detail.append(history_entry)
@@ -985,8 +1030,7 @@ class BacktestEngine:
                         self.best_overall = {
                             'params': {mk: dict(mp) for mk, mp in params.items()},
                             'weights': {
-                                'method_weights': dict(weights.get('method_weights', {})),
-                                'granularity_weights': dict(weights.get('granularity_weights', {})),
+                                'composite_weights': dict(weights.get('composite_weights', {})),
                             },
                             'avg_hits': round(score, 4),
                             'max_hits': result['max_total_hits'],
@@ -1012,8 +1056,7 @@ class BacktestEngine:
                                 self.best_recent = {
                                     'params': {mk: dict(mp) for mk, mp in params.items()},
                                     'weights': {
-                                        'method_weights': dict(weights.get('method_weights', {})),
-                                        'granularity_weights': dict(weights.get('granularity_weights', {})),
+                                        'composite_weights': dict(weights.get('composite_weights', {})),
                                     },
                                     'total_hits': pr['total_hits'],
                                     'main_hits': pr['main_hits'],
@@ -1136,11 +1179,8 @@ class BacktestEngine:
                 ["5+命中率", f"{bc['hit_rate_5plus']:.1%}"],
                 ["评估期数", bc.get('num_periods_evaluated', 'N/A')],
                 ["", ""],
-                ["最优方法权重", json.dumps(
-                    bc['weights'].get('method_weights', {}),
-                    ensure_ascii=False, indent=2)],
-                ["最优颗粒度权重", json.dumps(
-                    bc['weights'].get('granularity_weights', {}),
+                ['复合权重 (方法@颗粒度)', json.dumps(
+                    bc['weights'].get('composite_weights', {}),
                     ensure_ascii=False, indent=2)],
                 ["", ""],
                 ["--- 最优模型参数 ---", ""],
@@ -1313,16 +1353,9 @@ class SolveEngine(BacktestEngine):
         self.test_periods = solve_periods
         self.max_search_time = max_search_time
         self.num_workers = max(1, num_workers)
-        # 智能颗粒度
-        if solve_periods <= 2:
-            self.granularities = [500]
-            self.gran_names = ['500期']
-        elif solve_periods <= 10:
-            self.granularities = [100, 500]
-            self.gran_names = ['100期', '500期']
-        else:
-            self.granularities = [50, 100, 500]
-            self.gran_names = ['50期', '100期', '500期']
+        # 求解模式始终使用全部5种颗粒度（只需跑一次，无需智能缩减）
+        self.granularities = [50, 100, 500, 1000, 0]
+        self.gran_names = ['50期', '100期', '500期', '1000期', '全部期']
 
     def _check_solution(self, result: Dict) -> Tuple[bool, float]:
         """
@@ -1434,10 +1467,9 @@ class SolveEngine(BacktestEngine):
 
     def _merge_with_weights(self, period_predictions: List[Dict],
                              weights: Dict) -> Dict[str, List[int]]:
-        """用指定权重复制合并（不依赖 ResultMerger 的复杂约束逻辑）"""
+        """用指定权重复制合并（composite_weights 直接查表）"""
         from collections import defaultdict
-        method_w = weights.get('method_weights', {})
-        gran_w = weights.get('granularity_weights', {})
+        composite_w = weights.get('composite_weights', {})
 
         main_votes = defaultdict(float)
         aux_votes = defaultdict(float)
@@ -1445,7 +1477,8 @@ class SolveEngine(BacktestEngine):
         for entry in period_predictions:
             mk = entry['method_key']
             gk = entry['granularity']
-            weight = method_w.get(mk, 1.0) * gran_w.get(gk, 1.0)
+            key = f'{mk}@{gk}'
+            weight = composite_w.get(key, 1.0)
 
             for n in entry.get('predicted_main', []):
                 main_votes[n] += weight
@@ -1550,8 +1583,7 @@ class SolveEngine(BacktestEngine):
                 continue
 
             optimal_weights = {
-                'method_weights': solve_result['method_weights'],
-                'granularity_weights': solve_result['granularity_weights'],
+                'composite_weights': solve_result['composite_weights'],
             }
 
             # 验证：用最优权重复制合并并计算命中
@@ -1735,7 +1767,7 @@ class SolveEngine(BacktestEngine):
         # 阶段 3: 线性规划反解权重
         #   约束: 每个实际号码得票 > 每个非实际号码得票
         #   求解: scipy.optimize.linprog (HiGHS)
-        #   若不可行 → NNLS 降级
+        #   若不可行 → LSTSQ 降级
         # ════════════════════════════════════════════════════════
         solve_result = self.weight_solver.solve_lp_multi_period(
             all_period_preds, all_period_actuals, epsilon=0.01)
@@ -1748,20 +1780,18 @@ class SolveEngine(BacktestEngine):
                 'total_time': time.time() - self.start_time,
             }
 
-        solved_method_weights = solve_result['method_weights']
-        solved_gran_weights = solve_result['granularity_weights']
+        solved_composite_weights = solve_result['composite_weights']
         lp_success = solve_result.get('lp_success', False)
         lp_status = solve_result.get('lp_status', '?')
 
         optimal_weights = {
-            'method_weights': solved_method_weights,
-            'granularity_weights': solved_gran_weights,
+            'composite_weights': solved_composite_weights,
         }
 
         if lp_success:
             self._log(f"  LP 精确求解完成, 约束数={solve_result.get('n_constraints', '?')}")
         else:
-            self._log(f"  LP 不可行 → NNLS 降级 ({lp_status})")
+            self._log(f"  LP 不可行 → LSTSQ 降级 ({lp_status})")
 
         # ════════════════════════════════════════════════════════
         # 阶段 4: 验算 — 用反解的权重合并，必须与实际号码完全重合
@@ -1866,8 +1896,7 @@ class SolveEngine(BacktestEngine):
             'params': {
                 mk: dict(mp) for mk, mp in best_params.items()
             },
-            'method_weights': dict(solved_method_weights),
-            'granularity_weights': dict(solved_gran_weights),
+            'composite_weights': dict(solved_composite_weights),
 
             # ★ 验算: 配方能否还原实际号码
             'verification': {
@@ -1893,7 +1922,7 @@ class SolveEngine(BacktestEngine):
 
         self._log(f"\n[回测最优+求解] 完成! 耗时{total_time:.1f}秒")
         self._log(f"  参数来源: {param_source} | {param_score}")
-        self._log(f"  求解方法: {'LP精确' if lp_success else 'NNLS降级'} ({lp_status})")
+        self._log(f"  求解方法: {'LP精确' if lp_success else 'LSTSQ降级'} ({lp_status})")
         self._log(f"  验算: {'[OK] 全部通过' if all_verified else '[FAIL] 存在不重合'}")
 
         return result
@@ -2023,8 +2052,7 @@ class SolveEngine(BacktestEngine):
                         'eval_time': result.get('evaluation_time', 0),
                         'params_snapshot': {mk: dict(mp) for mk, mp in params.items()},
                         'weights_snapshot': {
-                            'method_weights': dict(weights.get('method_weights', {})),
-                            'granularity_weights': dict(weights.get('granularity_weights', {})),
+                            'composite_weights': dict(weights.get('composite_weights', {})),
                         },
                     })
 
