@@ -452,24 +452,26 @@ class LotterySystemGUI:
         # 接续优化：历史组合选择列表
         self.continue_frame = tk.Frame(settings_frame, bg=self.colors['bg'])
         # 初始隐藏，选择接续优化时显示
-        tk.Label(self.continue_frame, text="接续目标组合（选一个）:",
+        tk.Label(self.continue_frame, text="接续目标组合（点击选中一行，再点▶开始回测）:",
                 font=("Microsoft YaHei", 9), bg=self.colors['bg'],
                 fg=self.colors['text_light']).pack(anchor=tk.W, padx=0, pady=(0, 3))
 
         combo_tree_frame = tk.Frame(self.continue_frame, bg=self.colors['bg'])
         combo_tree_frame.pack(fill=tk.X)
 
-        combo_cols = ("ID", "平均命中", "最高命中", "阶段")
+        combo_cols = ("组合", "平均命中", "最高命中", "5+率", "阶段")
         self.continue_combo_tree = ttk.Treeview(combo_tree_frame, columns=combo_cols,
             show="headings", height=5, selectmode="browse")
-        self.continue_combo_tree.heading("ID", text="ID")
+        self.continue_combo_tree.heading("组合", text="组合")
         self.continue_combo_tree.heading("平均命中", text="平均命中")
         self.continue_combo_tree.heading("最高命中", text="最高命中")
+        self.continue_combo_tree.heading("5+率", text="5+率")
         self.continue_combo_tree.heading("阶段", text="阶段")
-        self.continue_combo_tree.column("ID", width=50, anchor="center")
+        self.continue_combo_tree.column("组合", width=85, anchor="center")
         self.continue_combo_tree.column("平均命中", width=70, anchor="center")
         self.continue_combo_tree.column("最高命中", width=70, anchor="center")
-        self.continue_combo_tree.column("阶段", width=80, anchor="center")
+        self.continue_combo_tree.column("5+率", width=55, anchor="center")
+        self.continue_combo_tree.column("阶段", width=95, anchor="center")
         self.continue_combo_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         self._continue_combo_data = {}  # {iid: combo_dict}
@@ -1102,11 +1104,27 @@ class LotterySystemGUI:
         if not self.backtest_engine:
             return
         combos = self.backtest_engine.get_historical_combos()
+        # 阶段中文映射
+        phase_cn = {
+            'exploration': '探索期', 'convergence': '收敛期', 'pulse': '脉冲',
+            'bo_warmup': 'BO预热', 'bo_suggest': 'BO建议', 'bo_fallback': 'BO降级',
+            'cmaes': 'CMA-ES', 'sa': '模拟退火', 'continue': '接续优化',
+            'seed': '种子评估', 'best_overall': '全局最优',
+        }
+        # 高命中标记（≥3.0绿色背景）
+        self.continue_combo_tree.tag_configure('hot', background='#e8f5e9')
         for c in combos:
             iid = f"c{c['combo_id']}"
+            rate_5plus = c.get('hit_rate_5plus', 0)
+            avg = c['avg_hits']
+            tags = ('hot',) if avg >= 3.0 else ()
             self.continue_combo_tree.insert("", tk.END, iid=iid,
-                values=(c['combo_id'], f"{c['avg_hits']:.3f}",
-                       c['max_hits'], c.get('phase', '?')))
+                values=(f"组合 #{c['combo_id']}",
+                       f"{avg:.2f}",
+                       c['max_hits'],
+                       f"{rate_5plus:.0%}" if rate_5plus else "—",
+                       phase_cn.get(c.get('phase', '?'), c.get('phase', '?'))),
+                tags=tags)
             self._continue_combo_data[iid] = c
 
     def _update_backtest_clock(self):
