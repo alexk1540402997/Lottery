@@ -464,13 +464,37 @@ class LotterySystemGUI:
     # ========================================================================
 
     def _build_optimize_tab(self):
-        """构建优化/日志Tab"""
+        """构建优化/日志Tab（可滚动）"""
+        # 外层Canvas+滚动条（内容可能超出一屏）
+        opt_canvas = tk.Canvas(self.tab_optimize, bg=self.colors['bg'],
+                               highlightthickness=0)
+        opt_scroll = tk.Scrollbar(self.tab_optimize, orient=tk.VERTICAL,
+                                  command=opt_canvas.yview)
+        opt_content = tk.Frame(opt_canvas, bg=self.colors['bg'])
+        opt_content.bind("<Configure>",
+            lambda e: opt_canvas.configure(scrollregion=opt_canvas.bbox("all")))
+        _opt_win_id = opt_canvas.create_window((0, 0), window=opt_content, anchor=tk.NW)
+        opt_canvas.configure(yscrollcommand=opt_scroll.set)
+        opt_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        opt_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 鼠标滚轮支持（仅在优化Tab内生效）
+        def _on_opt_mousewheel(event):
+            opt_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        opt_canvas.bind("<MouseWheel>", _on_opt_mousewheel)
+        opt_content.bind("<MouseWheel>", _on_opt_mousewheel)
+
+        # 让Canvas内frame宽度跟随窗口
+        def _on_opt_configure(event):
+            opt_canvas.itemconfig(_opt_win_id, width=event.width)
+        opt_canvas.bind("<Configure>", _on_opt_configure)
+
         # 当前配置显示
-        config_frame = tk.LabelFrame(self.tab_optimize, text="当前最优配置",
+        config_frame = tk.LabelFrame(opt_content, text="当前最优配置",
                                       font=("Microsoft YaHei", 11),
                                       bg=self.colors['bg'],
                                       fg=self.colors['text'])
-        config_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 5))
+        config_frame.pack(fill=tk.X, padx=15, pady=(15, 5))
 
         self.optimize_text = tk.Text(config_frame, font=("Consolas", 10),
                                      wrap=tk.WORD, bg=self.colors['card'],
@@ -483,7 +507,7 @@ class LotterySystemGUI:
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
         # 版本管理按钮
-        btn_frame = tk.Frame(self.tab_optimize, bg=self.colors['bg'])
+        btn_frame = tk.Frame(opt_content, bg=self.colors['bg'])
         btn_frame.pack(fill=tk.X, padx=15, pady=10)
 
         tk.Button(btn_frame, text="加载当前配置", command=self._refresh_optimize_display,
@@ -511,7 +535,7 @@ class LotterySystemGUI:
                  cursor="hand2").pack(side=tk.LEFT, padx=10)
 
         # 方法权重调整区
-        weight_frame = tk.LabelFrame(self.tab_optimize, text="合并权重调整（手动微调）",
+        weight_frame = tk.LabelFrame(opt_content, text="合并权重调整（手动微调）",
                                       font=("Microsoft YaHei", 11),
                                       bg=self.colors['bg'],
                                       fg=self.colors['text'])
@@ -558,11 +582,11 @@ class LotterySystemGUI:
                  cursor="hand2").pack(pady=8)
 
         # 版本历史浏览区
-        ver_frame = tk.LabelFrame(self.tab_optimize, text="版本历史（参数+权重同步快照）",
+        ver_frame = tk.LabelFrame(opt_content, text="版本历史（参数+权重同步快照）",
                                   font=("Microsoft YaHei", 11),
                                   bg=self.colors['bg'],
                                   fg=self.colors['text'])
-        ver_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+        ver_frame.pack(fill=tk.X, padx=15, pady=5)
 
         tree_frame = tk.Frame(ver_frame, bg=self.colors['bg'])
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
