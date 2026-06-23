@@ -1,0 +1,80 @@
+{
+  "bayesian": {
+    "freq_weight": 0.5,
+    "missing_weight": 0.15,
+    "prior_strength": 5.0,
+    "recent_weight": 0.3
+  },
+  "clustering": {
+    "n_clusters_max": 6,
+    "n_clusters_min": 2
+  },
+  "cooccurrence": {
+    "cooccur_threshold": 0.25,
+    "mutual_weight": 0.4,
+    "window_size": 100
+  },
+  "kalman": {
+    "measurement_noise": 0.05,
+    "process_noise": 0.05,
+    "trend_weight": 0.3
+  },
+  "markov": {
+    "base_freq_weight": 0.35,
+    "transition_weight": 0.65
+  },
+  "ml": {
+    "learning_rate": 0.1,
+    "max_depth": 6,
+    "n_estimators": 15,
+    "num_leaves": 15
+  },
+  "montecarlo": {
+    "in_range_bonus": 1.5,
+    "num_simulations": 800,
+    "sum_sigma_range": 1.5
+  },
+  "ngram": {
+    "adjacent_weight": 0.5,
+    "similarity_threshold": 0.3,
+    "top_k_similar": 15
+  },
+  "pattern": {
+    "consecutive_threshold": 0.3,
+    "digit_weight": 0.2,
+    "freq_weight": 0.4,
+    "prime_weight": 0.08,
+    "zone_weight": 0.25
+  },
+  "poisson": {
+    "alpha": 1.0,
+    "freq_weight": 0.7
+  },
+  "statistical": {
+    "cold_penalty": 0.15,
+    "freq_weight": 0.4,
+    "hot_boost": 0.1,
+    "missing_weight": 0.4
+  },
+  "timeseries": {
+    "sum_tolerance": 4,
+    "trend_bonus": 0.35,
+    "window_weights_mid": 0.3,
+    "window_weights_short": 0.5,
+    "sum_iterations": 20
+  },
+  "xgboost": {
+    "learning_rate": 0.1,
+    "max_depth": 9,
+    "n_estimators": 60,
+    "reg_alpha": 0.5,
+    "subsample": 0.7
+  },
+  "_meta": {
+    "version": 28,
+    "created": "2026-06-23 17:11:54",
+    "description": "回测优化 (平均命中3.000, 0.0%命中5+)",
+    "lottery_type": "ssq",
+    "backtest_score": 3.0
+  }
+}

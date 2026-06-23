@@ -2007,13 +2007,16 @@ class SolveWindow:
             }
             sorted_cw = sorted(composite_weights.items(),
                               key=lambda x: abs(x[1]), reverse=True)
+            max_abs = max((abs(wv) for _, wv in sorted_cw), default=1)
             for ck, wv in sorted_cw:  # 显示全部65个
                 if '@' in ck:
                     mk, gn = ck.split('@', 1)
                 else:
                     mk, gn = ck, '?'
                 name = method_names.get(mk, mk)
-                bar = '█' * max(1, int(abs(wv) * 8))
+                # 条形图按最大权重等比缩放，最长50字符，不换行
+                bar_len = max(1, int(abs(wv) / max_abs * 50))
+                bar = '█' * bar_len
                 sign = '+' if wv >= 0 else ''
                 self.result_text.insert(tk.END,
                     f"  {name:<10} @ {gn:<8} {sign}{wv:>7.4f}  {bar}\n")
