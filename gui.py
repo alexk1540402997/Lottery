@@ -237,7 +237,7 @@ class LotterySystemGUI:
         # 颗粒度下拉和多选
         self.gran_listbox_vars = {}
         for i, gname in enumerate(GRANULARITY_NAMES):
-            var = tk.BooleanVar(value=(gname in ['100期']))
+            var = tk.BooleanVar(value=True)  # 默认全部勾选
             self.gran_listbox_vars[gname] = var
             tk.Checkbutton(gran_frame, text=gname, variable=var,
                           font=("Microsoft YaHei", 9),
@@ -475,6 +475,22 @@ class LotterySystemGUI:
         self.continue_combo_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         self._continue_combo_data = {}  # {iid: combo_dict}
+
+        # 组合号搜索行
+        search_frame = tk.Frame(self.continue_frame, bg=self.colors['bg'])
+        search_frame.pack(fill=tk.X, pady=(3, 0))
+        tk.Label(search_frame, text="快速定位组合#:",
+                font=("Microsoft YaHei", 9), bg=self.colors['bg'],
+                fg=self.colors['text_light']).pack(side=tk.LEFT)
+        self.continue_search_var = tk.StringVar()
+        search_entry = tk.Entry(search_frame, textvariable=self.continue_search_var,
+                               font=("Microsoft YaHei", 9), width=8)
+        search_entry.pack(side=tk.LEFT, padx=5)
+        search_entry.bind('<Return>', self._on_continue_search)
+        tk.Button(search_frame, text="跳转", command=self._on_continue_search,
+                 font=("Microsoft YaHei", 8), bg=self.colors['primary'],
+                 fg="white", relief=tk.FLAT, padx=6, pady=1,
+                 cursor="hand2").pack(side=tk.LEFT, padx=3)
 
         # 进度显示
         self.backtest_elapsed_label = tk.Label(settings_frame, text="",
@@ -1098,6 +1114,23 @@ class LotterySystemGUI:
             self._refresh_continue_combo_list()
         else:
             self.continue_frame.pack_forget()
+
+    def _on_continue_search(self, event=None):
+        """快速定位组合号：输入编号→跳转到该组合"""
+        try:
+            target_id = int(self.continue_search_var.get().strip())
+        except ValueError:
+            return
+        target_iid = f"c{target_id}"
+        # 检查该组合是否存在
+        children = self.continue_combo_tree.get_children()
+        if target_iid not in children:
+            messagebox.showinfo("提示", f"组合 #{target_id} 不在历史记录中")
+            return
+        # 取消当前选中，选中目标，滚动到可见
+        self.continue_combo_tree.selection_set(target_iid)
+        self.continue_combo_tree.see(target_iid)
+        self.continue_combo_tree.focus(target_iid)
 
     def _refresh_continue_combo_list(self):
         """刷新接续优化的历史组合列表"""

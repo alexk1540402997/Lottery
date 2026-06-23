@@ -1148,15 +1148,19 @@ class BacktestEngine:
         combos = {}
         for entry in self.history_detail:
             cid = entry.get('combo_id')
-            if cid is None or cid in combos:
+            if cid is None:
                 continue
             params_snap = entry.get('params_snapshot', {})
             weights_snap = entry.get('weights_snapshot', {})
             if not params_snap or not weights_snap:
                 continue
+            # 同ID保留最高命中（同一组合可能在不同回测轮次被反复评估）
+            new_score = entry.get('avg_hits', 0)
+            if cid in combos and new_score <= combos[cid]['avg_hits']:
+                continue
             combos[cid] = {
                 'combo_id': cid,
-                'avg_hits': entry.get('avg_hits', 0),
+                'avg_hits': new_score,
                 'max_hits': entry.get('max_hits', 0),
                 'hit_rate_5plus': entry.get('hit_rate_5plus', 0),
                 'params': params_snap,
@@ -1165,21 +1169,23 @@ class BacktestEngine:
                 'timestamp': entry.get('eval_time', 0),
             }
 
-        # 补充从 best_overall 和 best_recent
+        # 补充 best_overall（如果比历史记录里的同ID更高）
         if self.best_overall:
             bo = self.best_overall
             bid = bo.get('combo_id')
-            if bid and bid not in combos:
-                combos[bid] = {
-                    'combo_id': bid,
-                    'avg_hits': bo.get('avg_hits', 0),
-                    'max_hits': bo.get('max_hits', 0),
-                    'hit_rate_5plus': 0,
-                    'params': bo.get('params', {}),
-                    'weights': bo.get('weights', {}),
-                    'phase': 'best_overall',
-                    'timestamp': 0,
-                }
+            bo_score = bo.get('avg_hits', 0)
+            if bid is not None:
+                if bid not in combos or bo_score > combos[bid]['avg_hits']:
+                    combos[bid] = {
+                        'combo_id': bid,
+                        'avg_hits': bo_score,
+                        'max_hits': bo.get('max_hits', 0),
+                        'hit_rate_5plus': 0,
+                        'params': bo.get('params', {}),
+                        'weights': bo.get('weights', {}),
+                        'phase': 'best_overall',
+                        'timestamp': 0,
+                    }
 
         result = sorted(combos.values(), key=lambda x: x['avg_hits'], reverse=True)
         return result
