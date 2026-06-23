@@ -1277,27 +1277,34 @@ class BacktestEngine:
                 # 按需生成扰动组合
                 need = max_concurrent - len(active_futures)
                 while len(combo_pool) < need * 2:
-                    new_params = {}
-                    for mk, mp in best_params.items():
-                        new_params[mk] = {}
-                        for pk, pv in mp.items():
-                            if isinstance(pv, (int, float)):
-                                noise = rng.normal(0, max(0.01, abs(pv) * perturb))
-                                if isinstance(pv, int):
-                                    new_params[mk][pk] = max(1, int(round(pv + noise)))
+                    # 每20组合脉冲一次：纯随机（防局部最优）
+                    if combo_idx > 0 and combo_idx % 20 == 0:
+                        new_params = self._sample_params_random(rng)
+                        new_weights = self._sample_weights(rng)
+                        gen_phase = 'pulse'
+                    else:
+                        gen_phase = phase_label
+                        new_params = {}
+                        for mk, mp in best_params.items():
+                            new_params[mk] = {}
+                            for pk, pv in mp.items():
+                                if isinstance(pv, (int, float)):
+                                    noise = rng.normal(0, max(0.01, abs(pv) * perturb))
+                                    if isinstance(pv, int):
+                                        new_params[mk][pk] = max(1, int(round(pv + noise)))
+                                    else:
+                                        new_params[mk][pk] = round(max(0.001, pv + noise), 6)
+                                elif isinstance(pv, list):
+                                    idx = rng.randint(0, len(pv) - 1)
+                                    new_params[mk][pk] = pv[idx]
                                 else:
-                                    new_params[mk][pk] = round(max(0.001, pv + noise), 6)
-                            elif isinstance(pv, list):
-                                idx = rng.randint(0, len(pv) - 1)
-                                new_params[mk][pk] = pv[idx]
-                            else:
-                                new_params[mk][pk] = pv
+                                    new_params[mk][pk] = pv
 
-                    new_weights = {'composite_weights': {}}
-                    for key, w in best_weights.get('composite_weights', {}).items():
-                        noise = rng.normal(0, max(0.1, abs(w) * perturb))
-                        new_weights['composite_weights'][key] = round(
-                            max(-500.0, min(500.0, w + noise)), 4)
+                        new_weights = {'composite_weights': {}}
+                        for key, w in best_weights.get('composite_weights', {}).items():
+                            noise = rng.normal(0, max(0.1, abs(w) * perturb))
+                            new_weights['composite_weights'][key] = round(
+                                max(-500.0, min(500.0, w + noise)), 4)
 
                     h = self._combo_hash(new_params, new_weights)
                     if h in self.tried_combos:
@@ -1305,15 +1312,15 @@ class BacktestEngine:
                         if skipped < 100:
                             continue
                     skipped = 0
-                    combo_pool.append((new_params, new_weights, h))
+                    combo_pool.append((new_params, new_weights, h, gen_phase))
                     self.combo_counter += 1
 
                 # 提交任务
                 while len(active_futures) < max_concurrent and combo_pool:
-                    params, weights, h = combo_pool.pop(0)
+                    params, weights, h, gen_phase = combo_pool.pop(0)
                     future = executor.submit(self.evaluate_combo, params, weights,
                                             seed=combo_idx, combo_id=combo_idx)
-                    active_futures[future] = (combo_idx, h, params, weights)
+                    active_futures[future] = (combo_idx, h, params, weights, gen_phase)
                     combo_idx += 1
 
                 if not active_futures:
@@ -1328,7 +1335,7 @@ class BacktestEngine:
                     continue
 
                 for future in done:
-                    cid, h, params, weights = active_futures.pop(future)
+                    cid, h, params, weights, gen_phase = active_futures.pop(future)
                     try:
                         result = future.result(timeout=5)
                     except Exception as e:
@@ -1342,7 +1349,7 @@ class BacktestEngine:
                     self.all_results.append(result)
                     self.tried_combos[h] = score
                     self.history_detail.append({
-                        'combo_id': cid, 'phase': phase_label,
+                        'combo_id': cid, 'phase': gen_phase,
                         'avg_hits': round(score, 4),
                         'max_hits': result.get('max_total_hits', 0),
                         'hit_rate_5plus': round(result.get('hit_rate_5plus', 0), 4),
@@ -1356,7 +1363,8 @@ class BacktestEngine:
                         self.best_combo = result
                         best_params = params    # ★ 新最优成为新的扰动中心
                         best_weights = weights
-                        self._log(f"★ 接续优化 #{cid}: 平均命中={score:.3f}, "
+                        pfx = "⚡脉冲" if gen_phase == 'pulse' else "★"
+                        self._log(f"{pfx} 接续优化 #{cid}[{gen_phase}]: 平均命中={score:.3f}, "
                                  f"最高={result['max_total_hits']}, "
                                  f"扰动→{self._get_perturb_ratio():.0%}")
 
