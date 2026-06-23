@@ -436,6 +436,44 @@ class LotterySystemGUI:
                 bg="#e8f5e9", fg="#2e7d32", justify=tk.LEFT,
                 wraplength=700).pack(padx=10, pady=8)
 
+        # 搜索模式选择
+        mode_frame = tk.Frame(settings_frame, bg=self.colors['bg'])
+        mode_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Label(mode_frame, text="搜索模式:", font=("Microsoft YaHei", 10, "bold"),
+                bg=self.colors['bg'], fg=self.colors['primary']).pack(side=tk.LEFT)
+        self.search_mode_var = tk.StringVar(value="从零搜索")
+        self.search_mode_combo = ttk.Combobox(mode_frame, textvariable=self.search_mode_var,
+            values=["从零搜索", "接续优化"],
+            width=14, state="readonly", font=("Microsoft YaHei", 10))
+        self.search_mode_combo.pack(side=tk.LEFT, padx=5)
+        self.search_mode_combo.bind('<<ComboboxSelected>>', self._on_search_mode_changed)
+
+        # 接续优化：历史组合选择列表
+        self.continue_frame = tk.Frame(settings_frame, bg=self.colors['bg'])
+        # 初始隐藏，选择接续优化时显示
+        tk.Label(self.continue_frame, text="接续目标组合（选一个）:",
+                font=("Microsoft YaHei", 9), bg=self.colors['bg'],
+                fg=self.colors['text_light']).pack(anchor=tk.W, padx=0, pady=(0, 3))
+
+        combo_tree_frame = tk.Frame(self.continue_frame, bg=self.colors['bg'])
+        combo_tree_frame.pack(fill=tk.X)
+
+        combo_cols = ("ID", "平均命中", "最高命中", "阶段")
+        self.continue_combo_tree = ttk.Treeview(combo_tree_frame, columns=combo_cols,
+            show="headings", height=5, selectmode="browse")
+        self.continue_combo_tree.heading("ID", text="ID")
+        self.continue_combo_tree.heading("平均命中", text="平均命中")
+        self.continue_combo_tree.heading("最高命中", text="最高命中")
+        self.continue_combo_tree.heading("阶段", text="阶段")
+        self.continue_combo_tree.column("ID", width=50, anchor="center")
+        self.continue_combo_tree.column("平均命中", width=70, anchor="center")
+        self.continue_combo_tree.column("最高命中", width=70, anchor="center")
+        self.continue_combo_tree.column("阶段", width=80, anchor="center")
+        self.continue_combo_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        self._continue_combo_data = {}  # {iid: combo_dict}
+
         # 进度显示
         self.backtest_elapsed_label = tk.Label(settings_frame, text="",
                                               font=("Microsoft YaHei", 9),
@@ -724,6 +762,11 @@ class LotterySystemGUI:
         self._log(f"  最早期号: {oldest['period']}")
         self._log(f"  总期数: {count}")
 
+        # 初始化回测引擎（加载历史记录，供接续优化模式使用）
+        self.backtest_engine = BacktestEngine()
+        self.backtest_engine.load_data(self.data_file)
+        self._log(f"  已加载{len(self.backtest_engine.history_detail)}条历史回测记录")
+
     def _on_load_error(self, error: str):
         """数据加载失败"""
         self.progress_bar.stop()
@@ -939,7 +982,7 @@ class LotterySystemGUI:
                         btn.config(state=tk.NORMAL)
 
     def _start_backtest(self):
-        """启动回测"""
+        """启动回测（支持从零搜索 / 接续优化两种模式）"""
         if self.data_reverse is None:
             messagebox.showwarning("警告", "请先加载数据")
             return
@@ -954,28 +997,51 @@ class LotterySystemGUI:
         else:
             max_search_time = int(time_limit_str) * 60
 
+        # 判断搜索模式
+        search_mode = self.search_mode_var.get()
+        is_continue = ('接续' in search_mode)
+        seed_combo = None
+        if is_continue:
+            selection = self.continue_combo_tree.selection()
+            if not selection:
+                messagebox.showwarning("提示", "接续优化模式需要选择一个历史组合")
+                return
+            seed_combo = self._continue_combo_data.get(selection[0])
+            if not seed_combo:
+                messagebox.showerror("错误", "选中组合数据无效")
+                return
+
         self.running = True
         self.btn_backtest.config(state=tk.DISABLED)
         self.btn_predict.config(state=tk.DISABLED)
         self.btn_stop.config(state=tk.NORMAL)
-        self._update_status(f"回测中... (测试最新{test_periods}期, "
-                           f"{num_workers}线程, "
-                           f"{'不限时' if max_search_time==0 else f'{max_search_time//60}分钟'})")
 
-        self.progress_bar.start()  # 不确定模式（无法预知总组合数）
+        mode_label = f"接续优化(组合#{seed_combo['combo_id']})" if is_continue else "从零搜索"
+        self._update_status(f"回测中... [{mode_label}] 测试最新{test_periods}期, "
+                           f"{num_workers}线程, "
+                           f"{'不限时' if max_search_time==0 else f'{max_search_time//60}分钟'}")
+
+        self.progress_bar.start()
 
         self.backtest_result_text.delete(1.0, tk.END)
+        info_lines = [
+            f"搜索模式: {mode_label}",
+            f"目标: 测试最新{test_periods}期",
+            f"搜索: 模型参数 + 合并权重",
+        ]
+        if is_continue and seed_combo:
+            info_lines.append(
+                f"种子组合: #{seed_combo['combo_id']} "
+                f"(原评分{seed_combo.get('avg_hits','?'):.3f})")
+        info_lines.append(
+            f"停止: {'不限' if max_search_time==0 else f'{max_search_time//60}分钟后自动停止'}")
+        info_lines.append(f"线程: {num_workers}个并行")
+
         self.backtest_result_text.insert(tk.END,
-            "回测初始化中...\n"
-            f"目标: 测试最新{test_periods}期\n"
-            f"搜索: 模型参数 + 合并权重\n"
-            f"停止: {'不限' if max_search_time==0 else f'{max_search_time//60}分钟后自动停止'}\n"
-            f"线程: {num_workers}个并行\n"
-            f"已记录{len(self.backtest_engine.tried_combos) if self.backtest_engine else 0}组已尝试组合\n\n"
-            "等待首个结果中...\n")
+            "回测初始化中...\n" + '\n'.join(info_lines) + "\n\n等待首个结果中...\n")
         self.notebook.select(1)
 
-        # 启动计时器更新耗时显示
+        # 启动计时器
         self._backtest_start_clock = time.time()
         self._update_backtest_clock()
 
@@ -993,9 +1059,12 @@ class LotterySystemGUI:
             num_workers=num_workers,
         )
 
-        # 自动选择并启用最优优化器 (BO → CMA-ES → SA)
-        optimizer_name = self.backtest_engine.init_optimizer()
-        self._log(f"优化器: {optimizer_name}")
+        # 接续优化模式不需要 BO/CMAES 冷启动（以种子为中心扰动）
+        if is_continue:
+            self._log(f"优化器: 接续优化 (种子扰动)")
+        else:
+            optimizer_name = self.backtest_engine.init_optimizer()
+            self._log(f"优化器: {optimizer_name}")
 
         def on_progress(pct, msg):
             self.root.after(0, lambda: self._update_status(
@@ -1012,7 +1081,33 @@ class LotterySystemGUI:
             on_progress=on_progress,
             on_log=on_log,
             on_done=on_done,
+            mode='continue' if is_continue else 'fresh',
+            seed_combo=seed_combo,
         )
+
+    def _on_search_mode_changed(self, event=None):
+        """搜索模式切换：接续优化时显示组合列表"""
+        mode = self.search_mode_var.get()
+        if '接续' in mode:
+            self.continue_frame.pack(fill=tk.X, padx=10, pady=(5, 0),
+                                     before=self.backtest_elapsed_label)
+            self._refresh_continue_combo_list()
+        else:
+            self.continue_frame.pack_forget()
+
+    def _refresh_continue_combo_list(self):
+        """刷新接续优化的历史组合列表"""
+        self.continue_combo_tree.delete(*self.continue_combo_tree.get_children())
+        self._continue_combo_data = {}
+        if not self.backtest_engine:
+            return
+        combos = self.backtest_engine.get_historical_combos()
+        for c in combos:
+            iid = f"c{c['combo_id']}"
+            self.continue_combo_tree.insert("", tk.END, iid=iid,
+                values=(c['combo_id'], f"{c['avg_hits']:.3f}",
+                       c['max_hits'], c.get('phase', '?')))
+            self._continue_combo_data[iid] = c
 
     def _update_backtest_clock(self):
         """更新回测耗时显示"""
