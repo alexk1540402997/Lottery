@@ -157,15 +157,28 @@ def cmd_backtest(args):
     if report_path:
         print(f"\n报告已保存: {report_path}")
 
-    # 保存版本
-    config_mgr = ConfigManager()
+    # 保存版本（参数+权重成对保存，避免孤版本）
+    config_mgr = ConfigManager(lottery_type=engine.lottery_type)
+    best_combo = result.get('best_combo', {})
+    best_params = best_combo.get('params', result.get('best_params', {}))
+    best_weights = best_combo.get('weights', {})
+    best_score = result.get('best_merged_avg_hits', result.get('best_score', 0))
+    best_cid = best_combo.get('combo_id')
+
     config_mgr.save_params_version(
-        result.get('best_params', {}),
-        description=f"CLI回测 (合并平均命中{result['best_merged_avg_hits']:.3f})",
+        best_params,
+        description=f"CLI回测 (平均命中{best_score:.3f})",
         lottery_type=engine.lottery_type,
-        backtest_score=result['best_merged_avg_hits'],
+        backtest_score=best_score,
+        combo_id=best_cid,
     )
-    print("参数版本已保存")
+    config_mgr.save_weights_version(
+        composite_weights=best_weights.get('composite_weights', {}),
+        description=f"CLI回测权重 (平均命中{best_score:.3f})",
+        backtest_score=best_score,
+        combo_id=best_cid,
+    )
+    print("参数+权重版本已保存")
 
     return 0
 

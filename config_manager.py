@@ -233,6 +233,15 @@ class ConfigManager:
         self.current_params = params_copy
         self._save_current_params(params_copy)
 
+        # 防孤版本：参数版本数不应超过权重版本数太多
+        n_p = len(self.version_index['param_versions'])
+        n_w = len(self.version_index['weight_versions'])
+        if n_p > n_w + 1:
+            import sys as _sys
+            print(f"[ConfigManager] ⚠ 警告: 参数版本({n_p})远超权重版本({n_w})，"
+                  f"可能有 save_params_version 未配对 save_weights_version！",
+                  file=_sys.stderr)
+
         return filename
 
     def save_weights_version(self, composite_weights: Dict[str, float] = None,
