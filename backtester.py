@@ -1192,7 +1192,14 @@ class BacktestEngine:
 
     def run_continue(self, seed_combo: Dict) -> Dict[str, Any]:
         """
-        接续优化模式：以历史组合为种子，逐步加大扰动力度搜索更优解。
+        接续优化模式：以历史组合为种子，按评分决定扰动幅度继续搜索。
+
+        扰动策略（与正常回测一致）:
+          当前最佳 ≥ 5.0 → 扰动 2%
+          当前最佳 ≥ 4.0 → 扰动 5%
+          当前最佳 ≥ 3.0 → 扰动 8%
+          其他           → 扰动 20%（默认）
+        种子评分下降 → 恢复到20%扰动重新探索
 
         参数:
             seed_combo: {'params': {...}, 'weights': {...}, 'avg_hits': ...}
@@ -1206,58 +1213,50 @@ class BacktestEngine:
         self.running = True
         self.start_time = time.time()
         self.best_combo = None
-        self.best_score = seed_combo.get('avg_hits', 1.0)
         self.all_results = []
 
-        seed_params = seed_combo['params']
-        seed_weights = seed_combo['weights']
+        # 以种子为起点
+        best_params = seed_combo['params']
+        best_weights = seed_combo['weights']
+        seed_hits_original = seed_combo.get('avg_hits', 1.0)
 
         actual_test_count = min(self.test_periods, self.total_periods - 10)
-        seed_hits = seed_combo.get('avg_hits', 0)
 
-        # 先重评估种子组合（在当前最新数据上的表现）
-        seed_result = self.evaluate_combo(seed_params, seed_weights, seed=0, combo_id=-1)
-        current_score = seed_result.get('avg_total_hits', 0)
-        seed_h = self._combo_hash(seed_params, seed_weights)
+        # 重评估种子组合（在当前最新数据上的表现）
+        seed_result = self.evaluate_combo(best_params, best_weights, seed=0, combo_id=-1)
+        self.best_score = seed_result.get('avg_total_hits', 0)
+        seed_h = self._combo_hash(best_params, best_weights)
 
-        self._log(f"接续优化启动: 种子组合ID≈{seed_combo.get('combo_id','?')}")
-        self._log(f"  原始评分: {seed_hits:.3f}")
-        self._log(f"  当前评分: {current_score:.3f} (最新{actual_test_count}期)")
-        if abs(current_score - seed_hits) > 1.0:
-            decline_pct = (seed_hits - current_score) / max(seed_hits, 0.1) * 100
-            if current_score < seed_hits:
-                self._log(f"  ⚠ 评分下降 {decline_pct:.0f}%，将扩大初始扰动范围")
+        score_changed = abs(self.best_score - seed_hits_original) > 0.5
+        self._log(f"接续优化启动: 种子组合 ≈ #{seed_combo.get('combo_id','?')}")
+        self._log(f"  原始评分: {seed_hits_original:.3f}")
+        self._log(f"  当前评分: {self.best_score:.3f} (最新{actual_test_count}期)"
+                 + (f", {'↓' if self.best_score < seed_hits_original else '↑'}{abs(self.best_score - seed_hits_original):.1f}" if score_changed else ""))
 
-        # 种子组合占位
+        # 种子占位
         self.all_results.append(seed_result)
-        self.tried_combos[seed_h] = current_score
-        if current_score >= self.best_score:
-            self.best_score = current_score
-            self.best_combo = seed_result
+        self.tried_combos[seed_h] = self.best_score
+        self.best_combo = seed_result
         self.history_detail.append({
-            'combo_id': -1,
-            'phase': 'seed',
-            'avg_hits': round(current_score, 4),
+            'combo_id': -1, 'phase': 'seed',
+            'avg_hits': round(self.best_score, 4),
             'max_hits': seed_result.get('max_total_hits', 0),
             'hit_rate_5plus': round(seed_result.get('hit_rate_5plus', 0), 4),
             'eval_time': seed_result.get('evaluation_time', 0),
-            'params_snapshot': {mk: dict(mp) for mk, mp in seed_params.items()},
-            'weights_snapshot': {'composite_weights': dict(seed_weights.get('composite_weights', {}))},
+            'params_snapshot': {mk: dict(mp) for mk, mp in best_params.items()},
+            'weights_snapshot': {'composite_weights': dict(best_weights.get('composite_weights', {}))},
         })
 
-        # 自适应扰动起点
-        decline_ratio = max(0, (seed_hits - current_score) / max(seed_hits, 0.1))
-        base_sigma = 0.05 + decline_ratio * 0.25  # 5%→30%取决于评分下降程度
+        # 如果种子评分下降，直接用默认扰动重新探索
+        if self.best_score < seed_hits_original - 0.5:
+            self._log(f"  ⚠ 评分下降，以默认扰动20%重新探索")
+        self._log(f"  初始扰动: {self._get_perturb_ratio():.0%} (评分{self.best_score:.1f})")
 
         rng = np.random.RandomState(int(time.time() * 1000) % 10000)
         combo_pool = []
         skipped = 0
         combo_idx = 0
-        sigma = base_sigma
-        no_improve_streak = 0
         phase_label = 'continue'
-
-        # 多线程并行（复用 run() 的线程池逻辑）
         max_concurrent = max(1, min(self.num_workers, 8))
 
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
@@ -1272,17 +1271,18 @@ class BacktestEngine:
                             f.cancel()
                         break
 
+                # 按当前最佳评分获取扰动比例
+                perturb = self._get_perturb_ratio()
+
                 # 按需生成扰动组合
                 need = max_concurrent - len(active_futures)
                 while len(combo_pool) < need * 2:
-                    # 以种子为中心扰动
-                    perturb_ratio = sigma * (1 + 0.5 * (no_improve_streak // 5))
                     new_params = {}
-                    for mk, mp in seed_params.items():
+                    for mk, mp in best_params.items():
                         new_params[mk] = {}
                         for pk, pv in mp.items():
                             if isinstance(pv, (int, float)):
-                                noise = rng.normal(0, max(0.01, abs(pv) * perturb_ratio))
+                                noise = rng.normal(0, max(0.01, abs(pv) * perturb))
                                 if isinstance(pv, int):
                                     new_params[mk][pk] = max(1, int(round(pv + noise)))
                                 else:
@@ -1294,8 +1294,8 @@ class BacktestEngine:
                                 new_params[mk][pk] = pv
 
                     new_weights = {'composite_weights': {}}
-                    for key, w in seed_weights.get('composite_weights', {}).items():
-                        noise = rng.normal(0, max(0.1, abs(w) * perturb_ratio))
+                    for key, w in best_weights.get('composite_weights', {}).items():
+                        noise = rng.normal(0, max(0.1, abs(w) * perturb))
                         new_weights['composite_weights'][key] = round(
                             max(-500.0, min(500.0, w + noise)), 4)
 
@@ -1342,8 +1342,7 @@ class BacktestEngine:
                     self.all_results.append(result)
                     self.tried_combos[h] = score
                     self.history_detail.append({
-                        'combo_id': cid,
-                        'phase': phase_label,
+                        'combo_id': cid, 'phase': phase_label,
                         'avg_hits': round(score, 4),
                         'max_hits': result.get('max_total_hits', 0),
                         'hit_rate_5plus': round(result.get('hit_rate_5plus', 0), 4),
@@ -1352,28 +1351,21 @@ class BacktestEngine:
                         'weights_snapshot': {'composite_weights': dict(weights.get('composite_weights', {}))},
                     })
 
-                    # 自适应扰动调整
                     if score > self.best_score:
                         self.best_score = score
                         self.best_combo = result
-                        no_improve_streak = 0
-                        sigma = max(base_sigma * 0.5, sigma * 0.7)  # 收窄扰动
-                        seed_params = params   # ★ 新最优变种子
-                        seed_weights = weights
+                        best_params = params    # ★ 新最优成为新的扰动中心
+                        best_weights = weights
                         self._log(f"★ 接续优化 #{cid}: 平均命中={score:.3f}, "
-                                 f"最高={result['max_total_hits']}, 扰动σ={sigma:.3f}")
-                    else:
-                        no_improve_streak += 1
-                        if no_improve_streak % 10 == 0:
-                            sigma = min(0.5, sigma * 1.5)  # 扩大扰动
-                            self._log(f"  连续{no_improve_streak}次无提升, 扰动σ扩大至{sigma:.3f}")
+                                 f"最高={result['max_total_hits']}, "
+                                 f"扰动→{self._get_perturb_ratio():.0%}")
 
                     elapsed = time.time() - self.start_time
                     pct = min(95, (elapsed / self.max_search_time * 100)
                              if self.max_search_time > 0 else (combo_idx * 10))
                     self._progress(pct,
-                        f"接续优化: {combo_idx}组, 最佳={self.best_score:.3f}, "
-                        f"σ={sigma:.3f}, {elapsed:.0f}s")
+                        f"接续优化: {combo_idx}组/{elapsed:.0f}s, "
+                        f"最佳={self.best_score:.1f}, 扰动={self._get_perturb_ratio():.0%}")
 
         total_time = time.time() - self.start_time
         self.running = False
@@ -1386,7 +1378,7 @@ class BacktestEngine:
             return {'success': False, 'error': '接续优化未找到有效结果', 'total_time': total_time}
 
         self._log(f"\n接续优化完成! {total_time:.0f}秒, 尝试{len(self.all_results)}组")
-        self._log(f"种子评分: {current_score:.3f} → 最终最佳: {self.best_score:.3f}")
+        self._log(f"种子评分: {seed_hits_original:.3f}(原) → 当前{self.best_score:.3f}(新) → 最终最佳: {self.best_score:.3f}")
 
         return {
             'success': True,
@@ -1400,7 +1392,7 @@ class BacktestEngine:
             'total_time': total_time,
             'all_results': self.all_results,
             'mode': 'continue',
-            'seed_score': current_score,
+            'seed_score': self.best_score,
         }
 
     # ========================================================================
