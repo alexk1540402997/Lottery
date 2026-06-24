@@ -1265,15 +1265,14 @@ class BacktestEngine:
             'weights_snapshot': {'composite_weights': dict(best_weights.get('composite_weights', {}))},
         })
 
-        # 如果种子评分下降，直接用默认扰动重新探索
-        if self.best_score < seed_hits_original - 0.5:
+        # 如果种子评分下降，强制扩大扰动
+        score_dropped = self.best_score < seed_hits_original - 0.5
+        if score_dropped:
             self._log(f"  ⚠ 评分下降，以默认扰动20%重新探索")
-        self._log(f"  初始扰动: {self._get_perturb_ratio():.0%} (评分{self.best_score:.1f})")
 
         rng = np.random.RandomState(int(time.time() * 1000) % 10000)
         combo_pool = []
         skipped = 0
-        gen_phase = 'continue'
         max_concurrent = max(1, min(self.num_workers, 8))
 
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
@@ -1288,8 +1287,12 @@ class BacktestEngine:
                             f.cancel()
                         break
 
-                # 按当前最佳评分获取扰动比例
-                perturb = self._get_perturb_ratio()
+                # 按当前最佳评分获取扰动比例（评分下降时强制20%）
+                if score_dropped:
+                    perturb = 0.20
+                    score_dropped = False  # 仅首次，之后跟随评分
+                else:
+                    perturb = self._get_perturb_ratio()
 
                 # 按需生成扰动组合
                 need = max_concurrent - len(active_futures)
@@ -1300,7 +1303,7 @@ class BacktestEngine:
                         new_weights = self._sample_weights(rng)
                         gen_phase = 'pulse'
                     else:
-                        gen_phase = phase_label
+                        gen_phase = 'continue'
                         new_params = {}
                         for mk, mp in best_params.items():
                             new_params[mk] = {}
