@@ -1240,12 +1240,14 @@ class BacktestEngine:
 
         actual_test_count = min(self.test_periods, self.total_periods - 10)
 
-        # 重评估种子组合（在当前最新数据上的表现）
-        seed_result = self.evaluate_combo(best_params, best_weights, seed=0, combo_id=-1)
+        # 重评估种子组合（使用全局唯一编号）
+        seed_cid = self.combo_counter
+        self.combo_counter += 1
+        seed_result = self.evaluate_combo(best_params, best_weights, seed=seed_cid, combo_id=seed_cid)
         self.best_score = seed_result.get('avg_total_hits', 0)
         seed_h = self._combo_hash(best_params, best_weights)
 
-        self._log(f"接续优化启动: 种子组合 #{seed_combo.get('combo_id','?')} "
+        self._log(f"接续优化启动: 种子组合 #{seed_cid} ← 来源#{seed_combo.get('combo_id','?')} "
                  f"(原始{seed_hits_original:.1f} → 当前{self.best_score:.1f}, "
                  f"扰动{self._get_perturb_ratio():.0%})")
 
@@ -1254,7 +1256,7 @@ class BacktestEngine:
         self.tried_combos[seed_h] = self.best_score
         self.best_combo = seed_result
         self.history_detail.append({
-            'combo_id': -1, 'phase': 'seed',
+            'combo_id': seed_cid, 'phase': 'seed',
             'avg_hits': round(self.best_score, 4),
             'max_hits': seed_result.get('max_total_hits', 0),
             'hit_rate_5plus': round(seed_result.get('hit_rate_5plus', 0), 4),
