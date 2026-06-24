@@ -599,7 +599,7 @@ class LotterySystemGUI:
 
         self.weight_vars = {}
         # 标题
-        tk.Label(weight_frame, text="手动调整权重 (65组: 方法@颗粒度, 范围[-500.0,500.0])",
+        tk.Label(weight_frame, text="手动调整权重 (65组: 方法@颗粒度, 范围[-10000.0,10000.0])",
                 font=("Microsoft YaHei", 9), bg=self.colors['bg'],
                 fg=self.colors['text']).pack(anchor=tk.W, padx=10, pady=(5, 0))
 
@@ -1768,8 +1768,8 @@ class LotterySystemGUI:
                     w = float(val_str)
                 except ValueError:
                     raise ValueError(f"无法解析权重值: {line}")
-                if w < -500.0 or w > 500.0:
-                    raise ValueError(f"权重超出范围 [-500.0, 500.0]: {key}={w}")
+                if w < -10000.0 or w > 10000.0:
+                    raise ValueError(f"权重超出范围 [-10000.0, 10000.0]: {key}={w}")
                 cw[key] = w
 
             if not cw:

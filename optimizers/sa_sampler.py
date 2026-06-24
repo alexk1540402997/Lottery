@@ -398,7 +398,7 @@ class SABridge:
             for gn in ['50期', '100期', '500期', '1000期', '全部期']:
                 key = f'method_{i}@{gn}'
                 composite_weights[key] = round(
-                    self._weight_rng.uniform(-500.0, 500.0), 4)
+                    self._weight_rng.uniform(-10000.0, 10000.0), 4)
         return {'composite_weights': composite_weights}
 
     def get_stats(self) -> Dict:

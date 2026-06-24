@@ -47,7 +47,7 @@ class LinearWeightSolver:
       X: (N个候选号码) × (M个方法×颗粒度组合) 的0/1矩阵
          X[n, j] = 1 表示组合j预测了号码n
       t: 目标向量，t[n] = 1 若n是实际开奖号码，否则 0
-      w: 待求解的权重向量 (允许正/负/零，范围 [-500.0, 500.0])
+      w: 待求解的权重向量 (允许正/负/零，范围 [-10000.0, 10000.0])
 
     两种方法:
       LP:  min 0  s.t. (X[b,:]-X[a,:])·w <= -ε  ∀ 实际a, 非实际b
@@ -797,7 +797,7 @@ if __name__ == "__main__":
     lp_result = solver.solve_lp_multi_period(
         [mock_predictions, mock_predictions],
         [(actual_main, actual_aux), ([2, 6, 11, 16, 21, 26], [5])],
-        epsilon=0.01, max_weight=500.0,
+        epsilon=0.01, max_weight=10000.0,
     )
     print(f"  LP成功: {lp_result.get('lp_success', False)}")
     print(f"  LP状态: {lp_result.get('lp_status', 'N/A')[:80]}")

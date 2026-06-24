@@ -649,7 +649,7 @@ class BOBridge:
     def _sample_weights(self) -> Dict:
         """采样 65 个独立 composite_weights"""
         w_min, w_max = self.weight_space.get(
-            'composite_weight_range', (-500.0, 500.0))
+            'composite_weight_range', (-10000.0, 10000.0))
 
         composite_weights = {}
         for i in range(1, 14):

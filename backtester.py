@@ -130,9 +130,9 @@ PARAM_SEARCH_SPACE = {
     },
 }
 
-# 合并权重搜索空间（65个独立 composite_weights，范围 [-500.0, 500.0]）
+# 合并权重搜索空间（65个独立 composite_weights，范围 [-10000.0, 10000.0]）
 WEIGHT_SEARCH_SPACE = {
-    'composite_weight_range': (-500.0, 500.0),  # 每个(方法×颗粒度)组合的独立权重范围
+    'composite_weight_range': (-10000.0, 10000.0),  # 每个(方法×颗粒度)组合的独立权重范围
 }
 
 
@@ -627,7 +627,7 @@ class BacktestEngine:
         return new_params
 
     def _sample_weights(self, rng: np.random.RandomState) -> Dict[str, Dict]:
-        """随机采样 65 个独立 composite_weights（范围 [-500.0, 500.0]）"""
+        """随机采样 65 个独立 composite_weights（范围 [-10000.0, 10000.0]）"""
         w_min, w_max = WEIGHT_SEARCH_SPACE['composite_weight_range']
 
         cw = {}
@@ -645,7 +645,7 @@ class BacktestEngine:
         cw = {}
         for key, w in base_weights.get('composite_weights', {}).items():
             noise = rng.normal(0, sigma)
-            cw[key] = round(max(-500.0, min(500.0, w + noise)), 4)
+            cw[key] = round(max(-10000.0, min(10000.0, w + noise)), 4)
 
         return {'composite_weights': cw}
 
@@ -1315,7 +1315,7 @@ class BacktestEngine:
                         for key, w in best_weights.get('composite_weights', {}).items():
                             noise = rng.normal(0, max(0.1, abs(w) * perturb))
                             new_weights['composite_weights'][key] = round(
-                                max(-500.0, min(500.0, w + noise)), 4)
+                                max(-10000.0, min(10000.0, w + noise)), 4)
 
                     h = self._combo_hash(new_params, new_weights)
                     if h in self.tried_combos:

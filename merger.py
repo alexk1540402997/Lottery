@@ -10,7 +10,7 @@
 - 权重改为 65 个独立 composite_weights（key="method_X@Y期"）
 - 不再使用 method_weights × granularity_weights 的交叉乘法
 - 每个(方法, 颗粒度)组合有权重独立，允许负/零/正
-- 权重范围 [-500.0, 500.0]，负值表示反向指标
+- 权重范围 [-10000.0, 10000.0]，负值表示反向指标
 - 权重从回测中自动学习，LP线性规划精确求解
 - 支持手动微调权重
 - 支持和值/区间/奇偶等约束条件过滤
@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore')
 
 # 5种颗粒度 × 13种方法 = 65组独立复合权重
 # Key格式: "method_X@Y期" (如 "method_1@500期")
-# 每个组合独立，允许正/负/零，范围 [-500.0, 500.0]
+# 每个组合独立，允许正/负/零，范围 [-10000.0, 10000.0]
 DEFAULT_COMPOSITE_WEIGHTS = {}
 for _mk in [f'method_{i}' for i in range(1, 14)]:
     for _gn in ['50期', '100期', '500期', '1000期', '全部期']:
@@ -464,7 +464,7 @@ def batch_merge_to_excel(all_results: Dict[str, Dict[str, Dict]],
 if __name__ == "__main__":
     print("结果合并器 5.0 - 跨颗粒度加权投票系统")
     print(f"权重模型: 13方法 × 5颗粒度 = 65个独立复合权重")
-    print(f"权重范围: [-500.0, 500.0]，允许正/负/零")
+    print(f"权重范围: [-10000.0, 10000.0]，允许正/负/零")
     merger = ResultMerger('ssq')
     print(f"已初始化 {len(merger.composite_weights)} 个 composite_weights")
     # 展示所有权重
