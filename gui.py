@@ -391,7 +391,7 @@ class LotterySystemGUI:
 
         tk.Label(row1, text="测试最新N期:", font=("Microsoft YaHei", 10),
                 bg=self.colors['bg']).pack(side=tk.LEFT)
-        self.backtest_periods_var = tk.StringVar(value="10")
+        self.backtest_periods_var = tk.StringVar(value="1")
         periods_combo = ttk.Combobox(row1, textvariable=self.backtest_periods_var,
                                      values=["1", "5", "10", "30", "50", "100", "200"],
                                      width=8, state="readonly", font=("Microsoft YaHei", 10))
@@ -399,7 +399,7 @@ class LotterySystemGUI:
 
         tk.Label(row1, text="并行线程:", font=("Microsoft YaHei", 10),
                 bg=self.colors['bg']).pack(side=tk.LEFT)
-        self.num_workers_var = tk.StringVar(value="2")
+        self.num_workers_var = tk.StringVar(value="8")
         workers_combo = ttk.Combobox(row1, textvariable=self.num_workers_var,
                                      values=["1", "2", "4", "6", "8"],
                                      width=5, state="readonly", font=("Microsoft YaHei", 10))
@@ -411,7 +411,7 @@ class LotterySystemGUI:
 
         tk.Label(row2, text="最大搜索时间(分钟):", font=("Microsoft YaHei", 10, "bold"),
                 bg=self.colors['bg'], fg=self.colors['danger']).pack(side=tk.LEFT)
-        self.time_limit_var = tk.StringVar(value="0")
+        self.time_limit_var = tk.StringVar(value="10")
         time_combo = ttk.Combobox(row2, textvariable=self.time_limit_var,
                                   values=["0(不限制)", "1", "3", "5", "10", "30",
                                           "60", "120", "240"],
