@@ -184,7 +184,8 @@ class BacktestEngine:
         self.param_performance: Dict = {}  # {method: {param: {value: {count, total_score}}}}
         self.history_detail: List[Dict] = []  # 全部组合详情
         self.top_combos: List[Dict] = []      # Top-K最佳（最多保存10个）
-        self.combo_counter = 0                # 累计组合序号
+        self.combo_counter_file = "logs/combo_counter.json"
+        self.combo_counter = self._load_combo_counter()  # 全局持久化序号
 
         # 搜索阶段控制
         self.phase = 'exploration'      # exploration → convergence
@@ -417,7 +418,6 @@ class BacktestEngine:
                     data = json.load(f)
                 self.history_detail = data.get('combos', [])
                 self.param_performance = data.get('param_perf', {})
-                self.combo_counter = data.get('counter', 0)
                 # 恢复top_combos（从history_detail中取top-10，键名需转换）
                 sorted_combos = sorted(
                     self.history_detail,
@@ -436,6 +436,25 @@ class BacktestEngine:
                 self.combo_counter = 0
                 self.top_combos = []
 
+    def _load_combo_counter(self) -> int:
+        """加载全局持久化组合计数器"""
+        try:
+            if os.path.exists(self.combo_counter_file):
+                with open(self.combo_counter_file, 'r', encoding='utf-8') as f:
+                    return json.load(f).get('next_combo_id', 1)
+        except Exception:
+            pass
+        return 1  # 从1开始，避免与历史遗留的0冲突
+
+    def _save_combo_counter(self):
+        """保存全局组合计数器"""
+        try:
+            os.makedirs(os.path.dirname(self.combo_counter_file), exist_ok=True)
+            with open(self.combo_counter_file, 'w', encoding='utf-8') as f:
+                json.dump({'next_combo_id': self.combo_counter}, f)
+        except Exception:
+            pass
+
     def _save_history_detail(self):
         """保存历史详情记录"""
         history_file = os.path.join(os.path.dirname(self.tried_log_file),
@@ -444,7 +463,6 @@ class BacktestEngine:
         try:
             with open(history_file, 'w', encoding='utf-8') as f:
                 json.dump({
-                    'counter': self.combo_counter,
                     'combos': self.history_detail,
                     'param_perf': self.param_performance,
                 }, f, ensure_ascii=False, indent=2)
@@ -918,14 +936,13 @@ class BacktestEngine:
                 skipped += 1
                 if skipped > batch_size * 3:
                     params, weights, h, phase_lbl = self._generate_combo(rng, prefer_new=False)
-            combo_pool.append((params, weights, h, len(combo_pool), phase_lbl))
+            combo_pool.append((params, weights, h, self.combo_counter, phase_lbl))
             self.combo_counter += 1
 
         if skipped > 0:
             self._log(f"生成组合时跳过{skipped}组已尝试过的组合")
 
         # 多线程并行评估
-        combo_idx = 0
         batch_submitted = 0
         active_futures = {}
 
@@ -1067,35 +1084,36 @@ class BacktestEngine:
                                 }
                             break
 
-                    combo_idx += 1
+                    n_tried = len(self.all_results)
 
                     # 进度报告
                     elapsed = time.time() - self.start_time
                     pct = min(95, (elapsed / self.max_search_time * 100)
-                             if self.max_search_time > 0 else (combo_idx * 10))
-                    status = (f"已试{combo_idx}组[{self.phase}], "
+                             if self.max_search_time > 0 else (n_tried * 10))
+                    status = (f"已试{n_tried}组[{self.phase}], "
                              f"最佳={self.best_score:.3f}, "
                              f"耗时{elapsed:.0f}s")
                     self._progress(pct, status)
 
                     # 组合数上限
-                    if num_combos_to_try and combo_idx >= num_combos_to_try:
+                    if num_combos_to_try and n_tried >= num_combos_to_try:
                         self._log(f"达到组合数上限({num_combos_to_try})")
                         for f in list(active_futures.keys()):
                             f.cancel()
                         active_futures.clear()
                         break
 
-                if num_combos_to_try and combo_idx >= num_combos_to_try:
+                if num_combos_to_try and len(self.all_results) >= num_combos_to_try:
                     break
 
         total_time = time.time() - self.start_time
         self.running = False
 
-        # 保存去重日志 + 历史详情 + 最优参数
+        # 保存去重日志 + 历史详情 + 最优参数 + 全局序号
         self._save_tried_combos()
         self._save_history_detail()
         self._save_best_params()
+        self._save_combo_counter()
 
         if not self.best_combo:
             return {
@@ -1255,8 +1273,7 @@ class BacktestEngine:
         rng = np.random.RandomState(int(time.time() * 1000) % 10000)
         combo_pool = []
         skipped = 0
-        combo_idx = 0
-        phase_label = 'continue'
+        gen_phase = 'continue'
         max_concurrent = max(1, min(self.num_workers, 8))
 
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
@@ -1278,7 +1295,7 @@ class BacktestEngine:
                 need = max_concurrent - len(active_futures)
                 while len(combo_pool) < need * 2:
                     # 每20组合脉冲一次：纯随机（防局部最优）
-                    if combo_idx > 0 and combo_idx % 20 == 0:
+                    if self.combo_counter > 0 and self.combo_counter % 20 == 0:
                         new_params = self._sample_params_random(rng)
                         new_weights = self._sample_weights(rng)
                         gen_phase = 'pulse'
@@ -1312,16 +1329,16 @@ class BacktestEngine:
                         if skipped < 100:
                             continue
                     skipped = 0
-                    combo_pool.append((new_params, new_weights, h, gen_phase))
+                    cid = self.combo_counter
+                    combo_pool.append((new_params, new_weights, h, cid, gen_phase))
                     self.combo_counter += 1
 
                 # 提交任务
                 while len(active_futures) < max_concurrent and combo_pool:
-                    params, weights, h, gen_phase = combo_pool.pop(0)
+                    params, weights, h, cid, gen_phase = combo_pool.pop(0)
                     future = executor.submit(self.evaluate_combo, params, weights,
-                                            seed=combo_idx, combo_id=combo_idx)
-                    active_futures[future] = (combo_idx, h, params, weights, gen_phase)
-                    combo_idx += 1
+                                            seed=cid, combo_id=cid)
+                    active_futures[future] = (cid, h, params, weights, gen_phase)
 
                 if not active_futures:
                     if self.max_search_time == 0:
@@ -1368,11 +1385,12 @@ class BacktestEngine:
                                  f"最高={result['max_total_hits']}, "
                                  f"扰动→{self._get_perturb_ratio():.0%}")
 
+                    n_tried = len(self.all_results)
                     elapsed = time.time() - self.start_time
                     pct = min(95, (elapsed / self.max_search_time * 100)
-                             if self.max_search_time > 0 else (combo_idx * 10))
+                             if self.max_search_time > 0 else (n_tried * 10))
                     self._progress(pct,
-                        f"接续优化: {combo_idx}组/{elapsed:.0f}s, "
+                        f"接续优化: {n_tried}组/{elapsed:.0f}s, "
                         f"最佳={self.best_score:.1f}, 扰动={self._get_perturb_ratio():.0%}")
 
         total_time = time.time() - self.start_time
@@ -1381,6 +1399,7 @@ class BacktestEngine:
         self._save_tried_combos()
         self._save_history_detail()
         self._save_best_params()
+        self._save_combo_counter()
 
         if not self.best_combo:
             return {'success': False, 'error': '接续优化未找到有效结果', 'total_time': total_time}
