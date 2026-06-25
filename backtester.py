@@ -2018,12 +2018,12 @@ class SolveEngine(BacktestEngine):
         best_recent = best_data.get('best_recent')
         best_overall = best_data.get('best_overall')
 
-        if best_recent:
+        if best_recent and best_recent.get('params'):
             best_params = best_recent['params']
             param_source = 'best_recent'
-            param_score = (f"最新期命中={best_recent['total_hits']}"
-                          f"({best_recent['main_hits']}主+{best_recent['aux_hits']}辅)"
-                          f" @ combo#{best_recent['combo_id']}")
+            param_score = (f"最新期命中={best_recent.get('total_hits','?')}"
+                          f"({best_recent.get('main_hits','?')}主+{best_recent.get('aux_hits','?')}辅)"
+                          f" @ combo#{best_recent.get('combo_id','?')}")
         elif best_overall:
             best_params = best_overall['params']
             param_source = 'best_overall'
