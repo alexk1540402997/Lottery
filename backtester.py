@@ -470,9 +470,10 @@ class BacktestEngine:
             pass
 
     def _save_best_params(self):
-        """保存回测最优参数（供求解模式读取）"""
+        """保存回测最优参数（供求解模式读取，按彩票类型隔离）"""
+        suffix = '' if self.lottery_type == 'ssq' else f'_{self.lottery_type}'
         best_file = os.path.join(os.path.dirname(self.tried_log_file),
-                                 "best_backtest_params.json")
+                                 f"best_backtest_params{suffix}.json")
         os.makedirs(os.path.dirname(best_file), exist_ok=True)
 
         # 加载已有记录（保留历史最优）
@@ -507,16 +508,15 @@ class BacktestEngine:
 
     @staticmethod
     def load_best_params(lottery_type: str = None) -> Dict:
-        """静态方法：加载回测最优参数"""
-        best_file = os.path.join("logs", "best_backtest_params.json")
+        """静态方法：加载回测最优参数（按彩票类型隔离）"""
+        lt = (lottery_type or 'ssq').lower()
+        suffix = '' if lt == 'ssq' else f'_{lt}'
+        best_file = os.path.join("logs", f"best_backtest_params{suffix}.json")
         if not os.path.exists(best_file):
             return {}
         try:
             with open(best_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            if lottery_type and data.get('lottery_type') != lottery_type:
-                return {}
-            return data
+                return json.load(f)
         except Exception:
             return {}
 
