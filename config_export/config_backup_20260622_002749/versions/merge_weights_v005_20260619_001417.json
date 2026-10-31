@@ -1,0 +1,25 @@
+{
+  "method_weights": {
+    "method_1": 1.0,
+    "method_2": 1.0,
+    "method_3": 1.0,
+    "method_4": 1.0,
+    "method_5": 1.0,
+    "method_6": 1.0,
+    "method_7": 1.0,
+    "method_8": 1.0
+  },
+  "granularity_weights": {
+    "50期": 2.7911,
+    "100期": 0.8308,
+    "500期": 2.2605,
+    "1000期": 2.3338,
+    "全部期": 1.6506
+  },
+  "_meta": {
+    "version": 5,
+    "created": "2026-06-19 00:14:17",
+    "description": "手动调整",
+    "backtest_score": 0.0
+  }
+}

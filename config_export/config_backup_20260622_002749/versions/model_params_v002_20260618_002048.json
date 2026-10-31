@@ -1,0 +1,51 @@
+{
+  "statistical": {
+    "freq_weight": 0.8,
+    "missing_weight": 0.6,
+    "hot_boost": 0.2,
+    "cold_penalty": 0.1
+  },
+  "timeseries": {
+    "window_weights_short": 0.35,
+    "window_weights_mid": 0.35,
+    "trend_bonus": 0.1,
+    "sum_tolerance": 10
+  },
+  "pattern": {
+    "zone_weight": 0.25,
+    "prime_weight": 0.25,
+    "digit_weight": 0.25,
+    "freq_weight": 0.5,
+    "consecutive_threshold": 0.3
+  },
+  "ml": {
+    "n_estimators": 50,
+    "max_depth": 15,
+    "min_samples_split": 3
+  },
+  "markov": {
+    "transition_weight": 0.75,
+    "base_freq_weight": 0.3
+  },
+  "montecarlo": {
+    "num_simulations": 5000,
+    "sum_sigma_range": 3.0,
+    "in_range_bonus": 2.0
+  },
+  "clustering": {
+    "n_clusters_min": 2,
+    "n_clusters_max": 6
+  },
+  "ngram": {
+    "similarity_threshold": 0.3,
+    "adjacent_weight": 0.6,
+    "top_k_similar": 15
+  },
+  "_meta": {
+    "version": 2,
+    "created": "2026-06-18 00:20:48",
+    "description": "回测优化 (平均命中1.200, 0.0%命中5+)",
+    "lottery_type": "ssq",
+    "backtest_score": 1.2
+  }
+}

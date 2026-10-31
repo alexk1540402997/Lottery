@@ -1,0 +1,65 @@
+{
+  "timestamp": "20260620_230845",
+  "backtest_results": [
+    {
+      "optimizer": "bo",
+      "label": "BO 贝叶斯优化",
+      "success": false,
+      "best_avg_hits": 0.0,
+      "best_max_hits": 0,
+      "best_hit_rate_5plus": 0,
+      "total_combos": 0,
+      "total_skipped": 0,
+      "total_time": 71.1,
+      "combos_per_min": 0.0,
+      "convergence_90_at": 0,
+      "early_avg_5": 0.0,
+      "phase_distribution": {}
+    },
+    {
+      "optimizer": "cmaes",
+      "label": "CMA-ES",
+      "success": false,
+      "best_avg_hits": 0.0,
+      "best_max_hits": 0,
+      "best_hit_rate_5plus": 0,
+      "total_combos": 0,
+      "total_skipped": 0,
+      "total_time": 73.8,
+      "combos_per_min": 0.0,
+      "convergence_90_at": 0,
+      "early_avg_5": 0.0,
+      "phase_distribution": {}
+    },
+    {
+      "optimizer": "sa",
+      "label": "SA 模拟退火",
+      "success": false,
+      "best_avg_hits": 0.0,
+      "best_max_hits": 0,
+      "best_hit_rate_5plus": 0,
+      "total_combos": 0,
+      "total_skipped": 0,
+      "total_time": 76.5,
+      "combos_per_min": 0.0,
+      "convergence_90_at": 0,
+      "early_avg_5": 0.0,
+      "phase_distribution": {}
+    }
+  ],
+  "solve_result": {
+    "optimizer": "bo_linear_solve",
+    "label": "求解(BO+线性)",
+    "success": true,
+    "solutions_found": 0,
+    "total_evaluated": 8,
+    "total_time": 71.9,
+    "solve_method": "bo_linear",
+    "solve_config": {
+      "periods": 1,
+      "tolerance_main": 5,
+      "tolerance_aux": 1
+    },
+    "solutions": []
+  }
+}

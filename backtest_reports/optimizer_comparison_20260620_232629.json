@@ -1,0 +1,77 @@
+{
+  "timestamp": "20260620_232629",
+  "backtest_results": [
+    {
+      "optimizer": "bo",
+      "label": "BO 贝叶斯优化",
+      "success": true,
+      "best_avg_hits": 1.0,
+      "best_max_hits": 1,
+      "best_hit_rate_5plus": 0.0,
+      "total_combos": 6,
+      "total_skipped": 0,
+      "total_time": 100.2,
+      "combos_per_min": 3.6,
+      "convergence_90_at": 5,
+      "early_avg_5": 0.5,
+      "phase_distribution": {
+        "exploration": 62,
+        "convergence": 56,
+        "pulse": 6
+      }
+    },
+    {
+      "optimizer": "cmaes",
+      "label": "CMA-ES",
+      "success": true,
+      "best_avg_hits": 0.5,
+      "best_max_hits": 1,
+      "best_hit_rate_5plus": 0.0,
+      "total_combos": 4,
+      "total_skipped": 0,
+      "total_time": 95.6,
+      "combos_per_min": 2.5,
+      "convergence_90_at": 1,
+      "early_avg_5": 0.375,
+      "phase_distribution": {
+        "exploration": 62,
+        "convergence": 56,
+        "pulse": 6
+      }
+    },
+    {
+      "optimizer": "sa",
+      "label": "SA 模拟退火",
+      "success": true,
+      "best_avg_hits": 0.5,
+      "best_max_hits": 1,
+      "best_hit_rate_5plus": 0.0,
+      "total_combos": 6,
+      "total_skipped": 0,
+      "total_time": 104.2,
+      "combos_per_min": 3.5,
+      "convergence_90_at": 2,
+      "early_avg_5": 0.2,
+      "phase_distribution": {
+        "exploration": 62,
+        "convergence": 56,
+        "pulse": 6
+      }
+    }
+  ],
+  "solve_result": {
+    "optimizer": "bo_linear_solve",
+    "label": "求解(BO+线性)",
+    "success": true,
+    "solutions_found": 0,
+    "total_evaluated": 13,
+    "total_time": 93.4,
+    "solve_method": "bo_linear",
+    "solve_config": {
+      "periods": 1,
+      "tolerance_main": 5,
+      "tolerance_aux": 1
+    },
+    "solutions": []
+  }
+}

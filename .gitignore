@@ -29,3 +29,12 @@ Thumbs.db
 
 # Cache (回测缓存可以保留)
 # backtest_cache/
+
+# Excel 临时锁文件
+~$*
+
+# 本地备份压缩包（体积大，不入库）
+*.zip
+
+# 生成的回测报告 Excel（体积大，可由回测复现；JSON 摘要仍入库）
+backtest_reports/*.xlsx

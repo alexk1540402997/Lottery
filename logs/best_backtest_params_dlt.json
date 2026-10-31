@@ -1,0 +1,302 @@
+{
+  "lottery_type": "dlt",
+  "updated_at": "2026-10-28 21:07:16",
+  "best_overall": {
+    "params": {
+      "bayesian": {
+        "freq_weight": 0.467367,
+        "missing_weight": 0.191895,
+        "prior_strength": 3.445226,
+        "recent_weight": 0.34007
+      },
+      "clustering": {
+        "n_clusters_max": 5,
+        "n_clusters_min": 3
+      },
+      "cooccurrence": {
+        "cooccur_threshold": 0.312362,
+        "mutual_weight": 0.540914,
+        "window_size": 91
+      },
+      "kalman": {
+        "measurement_noise": 0.181789,
+        "process_noise": 0.020916,
+        "trend_weight": 0.450733
+      },
+      "markov": {
+        "base_freq_weight": 0.31724,
+        "transition_weight": 0.855162
+      },
+      "ml": {
+        "learning_rate": 0.154499,
+        "max_depth": 7,
+        "n_estimators": 33,
+        "num_leaves": 26
+      },
+      "montecarlo": {
+        "in_range_bonus": 1.634228,
+        "num_simulations": 512,
+        "sum_sigma_range": 2.081909
+      },
+      "ngram": {
+        "adjacent_weight": 0.586942,
+        "similarity_threshold": 0.400863,
+        "top_k_similar": 16
+      },
+      "pattern": {
+        "consecutive_threshold": 0.423469,
+        "digit_weight": 0.220528,
+        "freq_weight": 0.40895,
+        "prime_weight": 0.177374,
+        "zone_weight": 0.089195
+      },
+      "poisson": {
+        "alpha": 1.746257,
+        "freq_weight": 0.575593
+      },
+      "statistical": {
+        "cold_penalty": 0.113278,
+        "freq_weight": 0.519556,
+        "hot_boost": 0.101982,
+        "missing_weight": 0.533322
+      },
+      "timeseries": {
+        "sum_tolerance": 14,
+        "trend_bonus": 0.099975,
+        "window_weights_mid": 0.263746,
+        "window_weights_short": 0.506023,
+        "sum_iterations": 20
+      },
+      "xgboost": {
+        "learning_rate": 0.24825,
+        "max_depth": 7,
+        "n_estimators": 57,
+        "reg_alpha": 0.571848,
+        "subsample": 0.940235
+      }
+    },
+    "weights": {
+      "composite_weights": {
+        "method_1@50期": 22.2596,
+        "method_1@100期": 5503.0075,
+        "method_1@500期": -3988.4132,
+        "method_1@1000期": 1146.6401,
+        "method_1@全部期": -1058.0564,
+        "method_2@50期": 407.1126,
+        "method_2@100期": -2.1358,
+        "method_2@500期": -6880.0633,
+        "method_2@1000期": 4803.6448,
+        "method_2@全部期": -9660.053,
+        "method_3@50期": -960.3292,
+        "method_3@100期": -9090.2415,
+        "method_3@500期": -9426.4474,
+        "method_3@1000期": -941.9654,
+        "method_3@全部期": 3918.1863,
+        "method_4@50期": 7891.9703,
+        "method_4@100期": -1257.1117,
+        "method_4@500期": -7015.0373,
+        "method_4@1000期": 123.6253,
+        "method_4@全部期": -7128.9275,
+        "method_5@50期": 1697.2154,
+        "method_5@100期": -5947.2547,
+        "method_5@500期": 3061.7748,
+        "method_5@1000期": -1452.665,
+        "method_5@全部期": 2054.2009,
+        "method_6@50期": -7417.5567,
+        "method_6@100期": 6466.5182,
+        "method_6@500期": -4040.9652,
+        "method_6@1000期": -6733.6783,
+        "method_6@全部期": -577.8723,
+        "method_7@50期": 8603.4987,
+        "method_7@100期": -1216.1239,
+        "method_7@500期": 6221.942,
+        "method_7@1000期": -8791.2755,
+        "method_7@全部期": 523.4663,
+        "method_8@50期": 2914.7438,
+        "method_8@100期": 3502.5779,
+        "method_8@500期": 1916.1416,
+        "method_8@1000期": -5888.1722,
+        "method_8@全部期": 8657.9132,
+        "method_9@50期": -1886.8546,
+        "method_9@100期": 1756.6419,
+        "method_9@500期": 10000.0,
+        "method_9@1000期": -1227.7651,
+        "method_9@全部期": -2941.9695,
+        "method_10@50期": -7010.164,
+        "method_10@100期": -2883.689,
+        "method_10@500期": 10000.0,
+        "method_10@1000期": 6040.5495,
+        "method_10@全部期": 1254.2124,
+        "method_11@50期": 7963.6568,
+        "method_11@100期": 6117.0517,
+        "method_11@500期": 5716.0398,
+        "method_11@1000期": -1100.5555,
+        "method_11@全部期": 6960.589,
+        "method_12@50期": -6605.4138,
+        "method_12@100期": 6250.3873,
+        "method_12@500期": 935.8508,
+        "method_12@1000期": -578.2567,
+        "method_12@全部期": -6565.9534,
+        "method_13@50期": 84.5204,
+        "method_13@100期": -5008.1398,
+        "method_13@500期": -9473.0025,
+        "method_13@1000期": 8760.5138,
+        "method_13@全部期": -9607.7701
+      }
+    },
+    "avg_hits": 5.0,
+    "combo_id": 4213,
+    "lottery_type": "dlt",
+    "timestamp": "2026-06-25 14:52:39"
+  },
+  "best_recent": {
+    "params": {
+      "bayesian": {
+        "freq_weight": 0.467367,
+        "missing_weight": 0.191895,
+        "prior_strength": 3.445226,
+        "recent_weight": 0.34007
+      },
+      "clustering": {
+        "n_clusters_max": 5,
+        "n_clusters_min": 3
+      },
+      "cooccurrence": {
+        "cooccur_threshold": 0.312362,
+        "mutual_weight": 0.540914,
+        "window_size": 91
+      },
+      "kalman": {
+        "measurement_noise": 0.181789,
+        "process_noise": 0.020916,
+        "trend_weight": 0.450733
+      },
+      "markov": {
+        "base_freq_weight": 0.31724,
+        "transition_weight": 0.855162
+      },
+      "ml": {
+        "learning_rate": 0.154499,
+        "max_depth": 7,
+        "n_estimators": 33,
+        "num_leaves": 26
+      },
+      "montecarlo": {
+        "in_range_bonus": 1.634228,
+        "num_simulations": 512,
+        "sum_sigma_range": 2.081909
+      },
+      "ngram": {
+        "adjacent_weight": 0.586942,
+        "similarity_threshold": 0.400863,
+        "top_k_similar": 16
+      },
+      "pattern": {
+        "consecutive_threshold": 0.423469,
+        "digit_weight": 0.220528,
+        "freq_weight": 0.40895,
+        "prime_weight": 0.177374,
+        "zone_weight": 0.089195
+      },
+      "poisson": {
+        "alpha": 1.746257,
+        "freq_weight": 0.575593
+      },
+      "statistical": {
+        "cold_penalty": 0.113278,
+        "freq_weight": 0.519556,
+        "hot_boost": 0.101982,
+        "missing_weight": 0.533322
+      },
+      "timeseries": {
+        "sum_tolerance": 14,
+        "trend_bonus": 0.099975,
+        "window_weights_mid": 0.263746,
+        "window_weights_short": 0.506023,
+        "sum_iterations": 20
+      },
+      "xgboost": {
+        "learning_rate": 0.24825,
+        "max_depth": 7,
+        "n_estimators": 57,
+        "reg_alpha": 0.571848,
+        "subsample": 0.940235
+      }
+    },
+    "weights": {
+      "composite_weights": {
+        "method_1@50期": 22.2596,
+        "method_1@100期": 5503.0075,
+        "method_1@500期": -3988.4132,
+        "method_1@1000期": 1146.6401,
+        "method_1@全部期": -1058.0564,
+        "method_2@50期": 407.1126,
+        "method_2@100期": -2.1358,
+        "method_2@500期": -6880.0633,
+        "method_2@1000期": 4803.6448,
+        "method_2@全部期": -9660.053,
+        "method_3@50期": -960.3292,
+        "method_3@100期": -9090.2415,
+        "method_3@500期": -9426.4474,
+        "method_3@1000期": -941.9654,
+        "method_3@全部期": 3918.1863,
+        "method_4@50期": 7891.9703,
+        "method_4@100期": -1257.1117,
+        "method_4@500期": -7015.0373,
+        "method_4@1000期": 123.6253,
+        "method_4@全部期": -7128.9275,
+        "method_5@50期": 1697.2154,
+        "method_5@100期": -5947.2547,
+        "method_5@500期": 3061.7748,
+        "method_5@1000期": -1452.665,
+        "method_5@全部期": 2054.2009,
+        "method_6@50期": -7417.5567,
+        "method_6@100期": 6466.5182,
+        "method_6@500期": -4040.9652,
+        "method_6@1000期": -6733.6783,
+        "method_6@全部期": -577.8723,
+        "method_7@50期": 8603.4987,
+        "method_7@100期": -1216.1239,
+        "method_7@500期": 6221.942,
+        "method_7@1000期": -8791.2755,
+        "method_7@全部期": 523.4663,
+        "method_8@50期": 2914.7438,
+        "method_8@100期": 3502.5779,
+        "method_8@500期": 1916.1416,
+        "method_8@1000期": -5888.1722,
+        "method_8@全部期": 8657.9132,
+        "method_9@50期": -1886.8546,
+        "method_9@100期": 1756.6419,
+        "method_9@500期": 10000.0,
+        "method_9@1000期": -1227.7651,
+        "method_9@全部期": -2941.9695,
+        "method_10@50期": -7010.164,
+        "method_10@100期": -2883.689,
+        "method_10@500期": 10000.0,
+        "method_10@1000期": 6040.5495,
+        "method_10@全部期": 1254.2124,
+        "method_11@50期": 7963.6568,
+        "method_11@100期": 6117.0517,
+        "method_11@500期": 5716.0398,
+        "method_11@1000期": -1100.5555,
+        "method_11@全部期": 6960.589,
+        "method_12@50期": -6605.4138,
+        "method_12@100期": 6250.3873,
+        "method_12@500期": 935.8508,
+        "method_12@1000期": -578.2567,
+        "method_12@全部期": -6565.9534,
+        "method_13@50期": 84.5204,
+        "method_13@100期": -5008.1398,
+        "method_13@500期": -9473.0025,
+        "method_13@1000期": 8760.5138,
+        "method_13@全部期": -9607.7701
+      }
+    },
+    "total_hits": 5,
+    "combo_id": 4213,
+    "lottery_type": "dlt",
+    "timestamp": "2026-06-25 14:52:39",
+    "main_hits": 4,
+    "aux_hits": 1
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "method_weights": {
+    "method_1": 2.4832,
+    "method_2": 2.2165,
+    "method_3": 2.2174,
+    "method_4": 2.7226,
+    "method_5": 1.5957,
+    "method_6": 1.7716,
+    "method_7": 2.8465,
+    "method_8": 1.886
+  },
+  "granularity_weights": {
+    "50期": 1.6222,
+    "100期": 1.0788,
+    "500期": 2.7072,
+    "1000期": 2.8256,
+    "全部期": 2.5371
+  },
+  "_meta": {
+    "version": 2,
+    "created": "2026-06-18 00:20:48",
+    "description": "回测优化权重 (平均命中1.200)",
+    "backtest_score": 1.2
+  }
+}

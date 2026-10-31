@@ -1,0 +1,59 @@
+{
+  "timestamp": "20260620_231918",
+  "backtest_results": [
+    {
+      "optimizer": "bo",
+      "label": "BO 贝叶斯优化",
+      "success": false,
+      "best_avg_hits": 0.0,
+      "best_max_hits": 0,
+      "best_hit_rate_5plus": 0,
+      "total_combos": 0,
+      "total_skipped": 0,
+      "total_time": 124.8,
+      "combos_per_min": 0.0,
+      "convergence_90_at": 0,
+      "early_avg_5": 0.0,
+      "phase_distribution": {}
+    },
+    {
+      "optimizer": "cmaes",
+      "label": "CMA-ES",
+      "success": true,
+      "best_avg_hits": 1.6667,
+      "best_max_hits": 3,
+      "best_hit_rate_5plus": 0.0,
+      "total_combos": 4,
+      "total_skipped": 0,
+      "total_time": 131.6,
+      "combos_per_min": 1.8,
+      "convergence_90_at": 2,
+      "early_avg_5": 1.25,
+      "phase_distribution": {
+        "exploration": 62,
+        "convergence": 56,
+        "pulse": 6
+      }
+    },
+    {
+      "optimizer": "sa",
+      "label": "SA 模拟退火",
+      "success": true,
+      "best_avg_hits": 1.0,
+      "best_max_hits": 1,
+      "best_hit_rate_5plus": 0.0,
+      "total_combos": 4,
+      "total_skipped": 0,
+      "total_time": 146.9,
+      "combos_per_min": 1.6,
+      "convergence_90_at": 1,
+      "early_avg_5": 1.0,
+      "phase_distribution": {
+        "exploration": 62,
+        "convergence": 56,
+        "pulse": 6
+      }
+    }
+  ],
+  "solve_result": null
+}
