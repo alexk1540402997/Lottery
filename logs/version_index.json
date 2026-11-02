@@ -528,6 +528,21 @@
       "description": "回测优化 (平均命中3.000, 0.0%命中5+)",
       "backtest_score": 3.0,
       "combo_id": 4573
+    },
+    {
+      "version": 71,
+      "filename": "model_params_v071_20261101_184835.json",
+      "created": "2026-11-01 18:48:35",
+      "description": "回测优化 (平均命中3.000, 0.0%命中5+)",
+      "backtest_score": 3.0,
+      "combo_id": 4968
+    },
+    {
+      "version": 72,
+      "filename": "model_params_v072_20261103_020117.json",
+      "created": "2026-11-03 02:01:17",
+      "description": "Phase0 champion 冻结（SSQ 65权重基线）",
+      "backtest_score": 0.0
     }
   ],
   "weight_versions": [
@@ -1055,6 +1070,21 @@
       "description": "回测优化权重 (平均命中3.000)",
       "backtest_score": 3.0,
       "combo_id": 4573
+    },
+    {
+      "version": 71,
+      "filename": "merge_weights_v071_20261101_184835.json",
+      "created": "2026-11-01 18:48:35",
+      "description": "回测优化权重 (平均命中3.000)",
+      "backtest_score": 3.0,
+      "combo_id": 4968
+    },
+    {
+      "version": 72,
+      "filename": "merge_weights_v072_20261103_020117.json",
+      "created": "2026-11-03 02:01:17",
+      "description": "Phase0 champion 冻结（SSQ 65权重基线）",
+      "backtest_score": 0.0
     }
   ]
 }

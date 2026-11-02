@@ -1,0 +1,228 @@
+{
+  "created_at": "2026-11-03 02:05:57",
+  "lottery_type": "ssq",
+  "data_file": "双色球.xlsx",
+  "periods_requested": 5,
+  "granularities": [
+    "50期",
+    "100期",
+    "500期",
+    "1000期",
+    "全部期"
+  ],
+  "max_train": null,
+  "true_windows": true,
+  "param_version": 72,
+  "weight_version": 72,
+  "combo_id": null,
+  "summary": {
+    "periods_evaluated": 5,
+    "avg_total_hits": 1.6,
+    "avg_main_hits": 1.4,
+    "avg_aux_hits": 0.2,
+    "max_total_hits": 2,
+    "min_total_hits": 1,
+    "hit_distribution": {
+      "0": 0,
+      "1": 2,
+      "2": 3,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.0,
+    "rate_ge_4": 0.0,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 3.6,
+    "avg_near_main_2": 4.6,
+    "avg_near_aux_1": 0.4,
+    "avg_near_aux_2": 0.6,
+    "avg_actual_main_rank": 15.56,
+    "avg_actual_aux_rank": 5.0,
+    "total_elapsed": 118.4
+  },
+  "periods": [
+    {
+      "period_idx": 0,
+      "period": 26122,
+      "predicted_main": [
+        3,
+        13,
+        14,
+        22,
+        26,
+        30
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        1,
+        2,
+        4,
+        17,
+        19,
+        30
+      ],
+      "actual_aux": [
+        9
+      ],
+      "main_hits": 1,
+      "aux_hits": 0,
+      "total_hits": 1,
+      "near_main_1": 3,
+      "near_main_2": 4,
+      "near_aux_1": 0,
+      "near_aux_2": 0,
+      "actual_main_avg_rank": 15.83,
+      "actual_aux_avg_rank": 4.0,
+      "elapsed": 22.5
+    },
+    {
+      "period_idx": 1,
+      "period": 26121,
+      "predicted_main": [
+        3,
+        4,
+        14,
+        22,
+        26,
+        30
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        2,
+        7,
+        20,
+        24,
+        26,
+        30
+      ],
+      "actual_aux": [
+        2
+      ],
+      "main_hits": 2,
+      "aux_hits": 0,
+      "total_hits": 2,
+      "near_main_1": 3,
+      "near_main_2": 5,
+      "near_aux_1": 0,
+      "near_aux_2": 1,
+      "actual_main_avg_rank": 16.33,
+      "actual_aux_avg_rank": 5.0,
+      "elapsed": 24.8
+    },
+    {
+      "period_idx": 2,
+      "period": 26120,
+      "predicted_main": [
+        4,
+        12,
+        13,
+        14,
+        26,
+        30
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        13,
+        14,
+        16,
+        18,
+        20,
+        31
+      ],
+      "actual_aux": [
+        3
+      ],
+      "main_hits": 2,
+      "aux_hits": 0,
+      "total_hits": 2,
+      "near_main_1": 3,
+      "near_main_2": 4,
+      "near_aux_1": 1,
+      "near_aux_2": 1,
+      "actual_main_avg_rank": 12.83,
+      "actual_aux_avg_rank": 3.0,
+      "elapsed": 24.1
+    },
+    {
+      "period_idx": 3,
+      "period": 26119,
+      "predicted_main": [
+        4,
+        13,
+        14,
+        16,
+        26,
+        30
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        12,
+        22,
+        23,
+        25,
+        27,
+        30
+      ],
+      "actual_aux": [
+        4
+      ],
+      "main_hits": 1,
+      "aux_hits": 1,
+      "total_hits": 2,
+      "near_main_1": 4,
+      "near_main_2": 4,
+      "near_aux_1": 1,
+      "near_aux_2": 1,
+      "actual_main_avg_rank": 14.0,
+      "actual_aux_avg_rank": 1.0,
+      "elapsed": 22.9
+    },
+    {
+      "period_idx": 4,
+      "period": 26118,
+      "predicted_main": [
+        4,
+        11,
+        22,
+        25,
+        26,
+        30
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        5,
+        21,
+        22,
+        23,
+        28,
+        31
+      ],
+      "actual_aux": [
+        14
+      ],
+      "main_hits": 1,
+      "aux_hits": 0,
+      "total_hits": 1,
+      "near_main_1": 5,
+      "near_main_2": 6,
+      "near_aux_1": 0,
+      "near_aux_2": 0,
+      "actual_main_avg_rank": 18.83,
+      "actual_aux_avg_rank": 12.0,
+      "elapsed": 24.1
+    }
+  ]
+}

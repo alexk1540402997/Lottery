@@ -71,11 +71,10 @@
     "subsample": 0.8
   },
   "_meta": {
-    "version": 8,
-    "created": "2026-10-28 21:07:16",
-    "description": "回测优化 (平均命中4.000, 0.0%命中5+)",
+    "version": 9,
+    "created": "2026-11-03 02:01:17",
+    "description": "Phase0 champion 冻结（DLT 65权重基线）",
     "lottery_type": "dlt",
-    "backtest_score": 4.0,
-    "combo_id": 4850
+    "backtest_score": 0.0
   }
 }

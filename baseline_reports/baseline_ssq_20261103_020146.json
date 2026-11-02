@@ -1,0 +1,80 @@
+{
+  "created_at": "2026-11-03 02:01:46",
+  "lottery_type": "ssq",
+  "data_file": "双色球.xlsx",
+  "periods_requested": 1,
+  "granularities": [
+    "100期"
+  ],
+  "max_train": 500,
+  "true_windows": false,
+  "param_version": 72,
+  "weight_version": 72,
+  "combo_id": null,
+  "summary": {
+    "periods_evaluated": 1,
+    "avg_total_hits": 1.0,
+    "avg_main_hits": 1.0,
+    "avg_aux_hits": 0.0,
+    "max_total_hits": 1,
+    "min_total_hits": 1,
+    "hit_distribution": {
+      "0": 0,
+      "1": 1,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.0,
+    "rate_ge_4": 0.0,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 2.0,
+    "avg_near_main_2": 4.0,
+    "avg_near_aux_1": 0.0,
+    "avg_near_aux_2": 0.0,
+    "avg_actual_main_rank": 17.17,
+    "avg_actual_aux_rank": 8.0,
+    "total_elapsed": 0.6
+  },
+  "periods": [
+    {
+      "period_idx": 0,
+      "period": 26122,
+      "predicted_main": [
+        4,
+        13,
+        15,
+        23,
+        31,
+        32
+      ],
+      "predicted_aux": [
+        4
+      ],
+      "actual_main": [
+        1,
+        2,
+        4,
+        17,
+        19,
+        30
+      ],
+      "actual_aux": [
+        9
+      ],
+      "main_hits": 1,
+      "aux_hits": 0,
+      "total_hits": 1,
+      "near_main_1": 2,
+      "near_main_2": 4,
+      "near_aux_1": 0,
+      "near_aux_2": 0,
+      "actual_main_avg_rank": 17.17,
+      "actual_aux_avg_rank": 8.0,
+      "elapsed": 0.6
+    }
+  ]
+}

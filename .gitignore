@@ -38,3 +38,6 @@ Thumbs.db
 
 # 生成的回测报告 Excel（体积大，可由回测复现；JSON 摘要仍入库）
 backtest_reports/*.xlsx
+
+# Phase 0 本地备份（快照体积大，只保留在本地）
+backups/
