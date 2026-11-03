@@ -1,0 +1,245 @@
+{
+  "created_at": "2026-11-03 18:54:44",
+  "lottery_type": "ssq",
+  "data_file": "双色球.xlsx",
+  "periods": 3,
+  "workers": 3,
+  "param_version": 72,
+  "weight_version": 72,
+  "true_windows": {
+    "periods": 3,
+    "avg_total_hits": 1.6667,
+    "avg_main_hits": 1.6667,
+    "avg_aux_hits": 0.0,
+    "max_total_hits": 2,
+    "hit_distribution": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.0,
+    "rate_ge_4": 0.0,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 3.0,
+    "avg_near_main_2": 4.33,
+    "avg_actual_main_rank": 14.89,
+    "avg_actual_aux_rank": 4.0
+  },
+  "cap_500": {
+    "periods": 3,
+    "avg_total_hits": 1.6667,
+    "avg_main_hits": 1.6667,
+    "avg_aux_hits": 0.0,
+    "max_total_hits": 2,
+    "hit_distribution": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.0,
+    "rate_ge_4": 0.0,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 2.33,
+    "avg_near_main_2": 3.67,
+    "avg_actual_main_rank": 14.06,
+    "avg_actual_aux_rank": 4.67
+  },
+  "comparison": {
+    "avg_total_delta_true_minus_cap": 0.0,
+    "improved": 1,
+    "same": 1,
+    "worse": 1,
+    "near_main_1_delta": 0.67,
+    "actual_main_rank_delta": 0.83
+  },
+  "periods_detail": [
+    {
+      "period_idx": 0,
+      "period": 26122,
+      "actual_main": [
+        1,
+        2,
+        4,
+        17,
+        19,
+        30
+      ],
+      "actual_aux": [
+        9
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          13,
+          14,
+          22,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          22,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.33,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 1,
+      "period": 26121,
+      "actual_main": [
+        2,
+        7,
+        20,
+        24,
+        26,
+        30
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          22,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.0,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          14,
+          18,
+          22,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 10.67,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 2,
+      "period": 26120,
+      "actual_main": [
+        13,
+        14,
+        16,
+        18,
+        20,
+        31
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          12,
+          13,
+          14,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.83,
+        "actual_aux_avg_rank": 3.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 2.0
+      }
+    }
+  ],
+  "elapsed_seconds": 26.0
+}

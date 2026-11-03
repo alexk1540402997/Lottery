@@ -1,0 +1,5968 @@
+{
+  "created_at": "2026-11-03 19:00:09",
+  "lottery_type": "ssq",
+  "data_file": "双色球.xlsx",
+  "periods": 100,
+  "workers": 12,
+  "param_version": 72,
+  "weight_version": 72,
+  "true_windows": {
+    "periods": 100,
+    "avg_total_hits": 1.21,
+    "avg_main_hits": 1.14,
+    "avg_aux_hits": 0.07,
+    "max_total_hits": 4,
+    "hit_distribution": {
+      "0": 19,
+      "1": 51,
+      "2": 21,
+      "3": 8,
+      "4": 1,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.09,
+    "rate_ge_4": 0.01,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 2.8,
+    "avg_near_main_2": 3.89,
+    "avg_actual_main_rank": 16.24,
+    "avg_actual_aux_rank": 9.18
+  },
+  "cap_500": {
+    "periods": 100,
+    "avg_total_hits": 1.31,
+    "avg_main_hits": 1.24,
+    "avg_aux_hits": 0.07,
+    "max_total_hits": 4,
+    "hit_distribution": {
+      "0": 23,
+      "1": 37,
+      "2": 28,
+      "3": 10,
+      "4": 2,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    "rate_ge_3": 0.12,
+    "rate_ge_4": 0.02,
+    "rate_ge_5": 0.0,
+    "avg_near_main_1": 2.79,
+    "avg_near_main_2": 3.8,
+    "avg_actual_main_rank": 16.63,
+    "avg_actual_aux_rank": 8.29
+  },
+  "comparison": {
+    "avg_total_delta_true_minus_cap": -0.1,
+    "improved": 27,
+    "same": 39,
+    "worse": 34,
+    "near_main_1_delta": 0.01,
+    "actual_main_rank_delta": -0.39
+  },
+  "periods_detail": [
+    {
+      "period_idx": 0,
+      "period": 26122,
+      "actual_main": [
+        1,
+        2,
+        4,
+        17,
+        19,
+        30
+      ],
+      "actual_aux": [
+        9
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          13,
+          14,
+          22,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          22,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.0,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 1,
+      "period": 26121,
+      "actual_main": [
+        2,
+        7,
+        20,
+        24,
+        26,
+        30
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          22,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          14,
+          18,
+          22,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.17,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 2,
+      "period": 26120,
+      "actual_main": [
+        13,
+        14,
+        16,
+        18,
+        20,
+        31
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          12,
+          13,
+          14,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.83,
+        "actual_aux_avg_rank": 3.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 2.0
+      }
+    },
+    {
+      "period_idx": 3,
+      "period": 26119,
+      "actual_main": [
+        12,
+        22,
+        23,
+        25,
+        27,
+        30
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          16,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 14.33,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          4,
+          6,
+          17,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.0,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 4,
+      "period": 26118,
+      "actual_main": [
+        5,
+        21,
+        22,
+        23,
+        28,
+        31
+      ],
+      "actual_aux": [
+        14
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          11,
+          22,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.5,
+        "actual_aux_avg_rank": 12.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          11,
+          24,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.5,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 5,
+      "period": 26117,
+      "actual_main": [
+        4,
+        11,
+        14,
+        22,
+        26,
+        27
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          6,
+          13,
+          14,
+          24,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.0,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          6,
+          14,
+          18,
+          24,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 1,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.33,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 6,
+      "period": 26116,
+      "actual_main": [
+        10,
+        19,
+        24,
+        27,
+        28,
+        33
+      ],
+      "actual_aux": [
+        12
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          10,
+          13,
+          14,
+          17,
+          20
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.83,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 7,
+      "period": 26115,
+      "actual_main": [
+        4,
+        13,
+        14,
+        18,
+        22,
+        24
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          5,
+          13,
+          14,
+          16,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 11.0,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          5,
+          11,
+          13,
+          14,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 11.83,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 8,
+      "period": 26114,
+      "actual_main": [
+        7,
+        18,
+        23,
+        24,
+        29,
+        31
+      ],
+      "actual_aux": [
+        10
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.33,
+        "actual_aux_avg_rank": 10.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          19,
+          25,
+          32
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 10.0
+      }
+    },
+    {
+      "period_idx": 9,
+      "period": 26113,
+      "actual_main": [
+        3,
+        4,
+        20,
+        24,
+        29,
+        30
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.17,
+        "actual_aux_avg_rank": 12.0
+      },
+      "cap": {
+        "predicted_main": [
+          6,
+          7,
+          13,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.83,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 10,
+      "period": 26112,
+      "actual_main": [
+        1,
+        4,
+        11,
+        12,
+        17,
+        29
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          14,
+          25,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          5,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.33,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 11,
+      "period": 26111,
+      "actual_main": [
+        6,
+        7,
+        14,
+        22,
+        31,
+        32
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.5,
+        "actual_aux_avg_rank": 2.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          5,
+          11,
+          13,
+          14,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.17,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 12,
+      "period": 26110,
+      "actual_main": [
+        2,
+        5,
+        16,
+        19,
+        26,
+        32
+      ],
+      "actual_aux": [
+        14
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.5,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          6,
+          8,
+          9,
+          27,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 13,
+      "period": 26109,
+      "actual_main": [
+        9,
+        12,
+        15,
+        26,
+        30,
+        33
+      ],
+      "actual_aux": [
+        6
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          6,
+          11,
+          14,
+          23,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.5,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 14,
+      "period": 26108,
+      "actual_main": [
+        6,
+        11,
+        13,
+        14,
+        20,
+        28
+      ],
+      "actual_aux": [
+        16
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          12,
+          13,
+          25,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.83,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          6,
+          11,
+          25,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.33,
+        "actual_aux_avg_rank": 13.0
+      }
+    },
+    {
+      "period_idx": 15,
+      "period": 26107,
+      "actual_main": [
+        1,
+        5,
+        9,
+        17,
+        24,
+        33
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          8,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 1,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.0,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          13,
+          17,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.67,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 16,
+      "period": 26106,
+      "actual_main": [
+        6,
+        11,
+        13,
+        14,
+        22,
+        30
+      ],
+      "actual_aux": [
+        14
+      ],
+      "true": {
+        "predicted_main": [
+          4,
+          13,
+          16,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 10.83,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          6,
+          13,
+          16,
+          22,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 4,
+        "aux_hits": 0,
+        "total_hits": 4,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.0,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 17,
+      "period": 26105,
+      "actual_main": [
+        2,
+        4,
+        13,
+        14,
+        15,
+        30
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          5,
+          13,
+          24,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.0,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          5,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.5,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 18,
+      "period": 26104,
+      "actual_main": [
+        11,
+        12,
+        13,
+        19,
+        20,
+        31
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          13,
+          14,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          5,
+          13,
+          22,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.5,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 19,
+      "period": 26103,
+      "actual_main": [
+        4,
+        11,
+        20,
+        27,
+        28,
+        30
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          5,
+          6,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          5,
+          6,
+          13,
+          14,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 20,
+      "period": 26102,
+      "actual_main": [
+        3,
+        4,
+        10,
+        13,
+        16,
+        25
+      ],
+      "actual_aux": [
+        9
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          5,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 10.83,
+        "actual_aux_avg_rank": 9.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          5,
+          23,
+          24,
+          25,
+          32
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.17,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 21,
+      "period": 26101,
+      "actual_main": [
+        5,
+        6,
+        8,
+        9,
+        24,
+        25
+      ],
+      "actual_aux": [
+        12
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          16,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.83,
+        "actual_aux_avg_rank": 3.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          4,
+          6,
+          14,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.33,
+        "actual_aux_avg_rank": 9.0
+      }
+    },
+    {
+      "period_idx": 22,
+      "period": 26100,
+      "actual_main": [
+        3,
+        4,
+        9,
+        13,
+        22,
+        31
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          14,
+          16,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 14.5,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          7,
+          14,
+          16,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 20.67,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 23,
+      "period": 26099,
+      "actual_main": [
+        1,
+        12,
+        14,
+        18,
+        30,
+        31
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          13,
+          14,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.0,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          4,
+          6,
+          17,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 24,
+      "period": 26098,
+      "actual_main": [
+        8,
+        16,
+        18,
+        22,
+        25,
+        26
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          16,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.17,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          14,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.83,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 25,
+      "period": 26097,
+      "actual_main": [
+        5,
+        16,
+        24,
+        26,
+        29,
+        30
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          6,
+          8,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.5,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          4,
+          7,
+          22,
+          23,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 26,
+      "period": 26096,
+      "actual_main": [
+        1,
+        4,
+        16,
+        22,
+        26,
+        31
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          25,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.33,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          5,
+          14,
+          24,
+          25,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.17,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 27,
+      "period": 26095,
+      "actual_main": [
+        4,
+        6,
+        14,
+        21,
+        22,
+        33
+      ],
+      "actual_aux": [
+        16
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          7,
+          25,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          7,
+          25,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.83,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 28,
+      "period": 26094,
+      "actual_main": [
+        6,
+        13,
+        15,
+        17,
+        24,
+        25
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          7,
+          11,
+          14,
+          33
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 23.0,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          5,
+          7,
+          14,
+          23,
+          24,
+          33
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 29,
+      "period": 26093,
+      "actual_main": [
+        5,
+        8,
+        15,
+        20,
+        21,
+        24
+      ],
+      "actual_aux": [
+        9
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          13,
+          14,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.5,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          6,
+          14,
+          16,
+          24,
+          25,
+          26
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 10.0
+      }
+    },
+    {
+      "period_idx": 30,
+      "period": 26092,
+      "actual_main": [
+        9,
+        11,
+        12,
+        25,
+        30,
+        33
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          7,
+          14,
+          16,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.0,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          6,
+          7,
+          12,
+          16,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 31,
+      "period": 26091,
+      "actual_main": [
+        2,
+        13,
+        14,
+        16,
+        20,
+        24
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          14,
+          24,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          4,
+          22,
+          24,
+          27,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 14.67,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 32,
+      "period": 26090,
+      "actual_main": [
+        2,
+        4,
+        15,
+        23,
+        25,
+        27
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          12,
+          13,
+          14,
+          28
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 20.5,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          5,
+          12,
+          13,
+          24,
+          28
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.33,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 33,
+      "period": 26089,
+      "actual_main": [
+        5,
+        18,
+        23,
+        24,
+        27,
+        33
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          7,
+          12,
+          14,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.33,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          7,
+          8,
+          20,
+          23,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.83,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 34,
+      "period": 26088,
+      "actual_main": [
+        6,
+        7,
+        11,
+        18,
+        22,
+        33
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          4,
+          5,
+          24,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 20.33,
+        "actual_aux_avg_rank": 2.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          4,
+          5,
+          13,
+          22,
+          24
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 35,
+      "period": 26087,
+      "actual_main": [
+        4,
+        6,
+        10,
+        18,
+        23,
+        31
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          14,
+          24,
+          26,
+          27,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 23.67,
+        "actual_aux_avg_rank": 10.0
+      },
+      "cap": {
+        "predicted_main": [
+          14,
+          16,
+          22,
+          24,
+          25,
+          27
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 22.17,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 36,
+      "period": 26086,
+      "actual_main": [
+        2,
+        5,
+        14,
+        25,
+        30,
+        32
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          14,
+          16,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 10.67,
+        "actual_aux_avg_rank": 2.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          16,
+          19,
+          22,
+          28
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.17,
+        "actual_aux_avg_rank": 13.0
+      }
+    },
+    {
+      "period_idx": 37,
+      "period": 26085,
+      "actual_main": [
+        6,
+        9,
+        13,
+        17,
+        24,
+        28
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          14,
+          16,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.83,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          7,
+          14,
+          16,
+          22,
+          28
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.67,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 38,
+      "period": 26084,
+      "actual_main": [
+        1,
+        5,
+        6,
+        10,
+        12,
+        16
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          7,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          22,
+          23,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 1,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.67,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 39,
+      "period": 26083,
+      "actual_main": [
+        7,
+        14,
+        15,
+        23,
+        28,
+        33
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          14,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 14.67,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          3,
+          19,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.0,
+        "actual_aux_avg_rank": 15.0
+      }
+    },
+    {
+      "period_idx": 40,
+      "period": 26082,
+      "actual_main": [
+        5,
+        7,
+        10,
+        14,
+        21,
+        28
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          14,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.0,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          3,
+          19,
+          20,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.5,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 41,
+      "period": 26081,
+      "actual_main": [
+        6,
+        10,
+        12,
+        15,
+        24,
+        27
+      ],
+      "actual_aux": [
+        12
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          4,
+          8,
+          24,
+          29
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.83,
+        "actual_aux_avg_rank": 2.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          8,
+          11,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.17,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 42,
+      "period": 26080,
+      "actual_main": [
+        4,
+        5,
+        11,
+        19,
+        27,
+        32
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          8,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 1,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.83,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          8,
+          13,
+          23,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 0,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.5,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 43,
+      "period": 26079,
+      "actual_main": [
+        1,
+        11,
+        17,
+        22,
+        24,
+        29
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          14,
+          24,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.83,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          8,
+          19,
+          20,
+          24,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 44,
+      "period": 26078,
+      "actual_main": [
+        7,
+        11,
+        14,
+        16,
+        27,
+        28
+      ],
+      "actual_aux": [
+        6
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          14,
+          16,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.67,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          7,
+          14,
+          16,
+          22,
+          31
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 9.0,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 45,
+      "period": 26077,
+      "actual_main": [
+        1,
+        4,
+        5,
+        14,
+        18,
+        25
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          11,
+          24,
+          25,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          24,
+          25,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.33,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 46,
+      "period": 26076,
+      "actual_main": [
+        1,
+        3,
+        19,
+        20,
+        24,
+        25
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          24,
+          25,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 10.83,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          7,
+          24,
+          25,
+          28,
+          29
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.33,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 47,
+      "period": 26075,
+      "actual_main": [
+        8,
+        12,
+        18,
+        21,
+        24,
+        30
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          16,
+          21,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.67,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          7,
+          16,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.5,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 48,
+      "period": 26074,
+      "actual_main": [
+        2,
+        23,
+        24,
+        26,
+        28,
+        32
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          14,
+          22,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.17,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          22,
+          24,
+          29,
+          30,
+          32
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.33,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 49,
+      "period": 26073,
+      "actual_main": [
+        9,
+        10,
+        13,
+        16,
+        19,
+        21
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          8,
+          18,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.33,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          17,
+          18,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.17,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 50,
+      "period": 26072,
+      "actual_main": [
+        7,
+        8,
+        12,
+        15,
+        17,
+        21
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          8,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.5,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          9,
+          24,
+          29,
+          30,
+          32
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.83,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 51,
+      "period": 26071,
+      "actual_main": [
+        3,
+        8,
+        19,
+        25,
+        31,
+        33
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          14,
+          24,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.83,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          17,
+          24,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 52,
+      "period": 26070,
+      "actual_main": [
+        3,
+        6,
+        8,
+        14,
+        26,
+        27
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          14,
+          22,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.5,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          6,
+          22,
+          24,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 53,
+      "period": 26069,
+      "actual_main": [
+        12,
+        14,
+        16,
+        17,
+        18,
+        32
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          4,
+          23,
+          24,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 0,
+        "near_main_2": 1,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.17,
+        "actual_aux_avg_rank": 9.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          23,
+          24,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 0,
+        "near_main_2": 1,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 26.17,
+        "actual_aux_avg_rank": 9.0
+      }
+    },
+    {
+      "period_idx": 54,
+      "period": 26068,
+      "actual_main": [
+        3,
+        5,
+        16,
+        18,
+        29,
+        32
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          13,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.33,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          6,
+          13,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 55,
+      "period": 26067,
+      "actual_main": [
+        4,
+        19,
+        27,
+        29,
+        30,
+        32
+      ],
+      "actual_aux": [
+        13
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          13,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.83,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          24,
+          25,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 56,
+      "period": 26066,
+      "actual_main": [
+        5,
+        11,
+        21,
+        23,
+        24,
+        29
+      ],
+      "actual_aux": [
+        16
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          13,
+          14,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.33,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          6,
+          12,
+          22,
+          26,
+          29
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.17,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 57,
+      "period": 26065,
+      "actual_main": [
+        7,
+        8,
+        16,
+        24,
+        30,
+        32
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          4,
+          22,
+          28,
+          29,
+          30
+        ],
+        "predicted_aux": [
+          15
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 3.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          22,
+          24,
+          25,
+          28,
+          29
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.83,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 58,
+      "period": 26064,
+      "actual_main": [
+        1,
+        9,
+        15,
+        18,
+        29,
+        33
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          22,
+          24,
+          28,
+          30,
+          32
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.5,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          11,
+          22,
+          24,
+          28
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.17,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 59,
+      "period": 26063,
+      "actual_main": [
+        2,
+        8,
+        25,
+        28,
+        30,
+        31
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          14,
+          22,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          7
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.67,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          16,
+          22,
+          23,
+          28,
+          30
+        ],
+        "predicted_aux": [
+          7
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.67,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 60,
+      "period": 26062,
+      "actual_main": [
+        2,
+        4,
+        7,
+        14,
+        28,
+        29
+      ],
+      "actual_aux": [
+        9
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          13,
+          22,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          7
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.83,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          22,
+          24,
+          28,
+          33
+        ],
+        "predicted_aux": [
+          7
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.5,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 61,
+      "period": 26061,
+      "actual_main": [
+        1,
+        4,
+        5,
+        15,
+        23,
+        28
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          7,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.5,
+        "actual_aux_avg_rank": 10.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          6,
+          7,
+          22,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 20.33,
+        "actual_aux_avg_rank": 10.0
+      }
+    },
+    {
+      "period_idx": 62,
+      "period": 26060,
+      "actual_main": [
+        7,
+        9,
+        10,
+        16,
+        22,
+        27
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          11,
+          13,
+          14,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 25.5,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          6,
+          22,
+          25,
+          30,
+          33
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 20.5,
+        "actual_aux_avg_rank": 10.0
+      }
+    },
+    {
+      "period_idx": 63,
+      "period": 26059,
+      "actual_main": [
+        8,
+        16,
+        26,
+        28,
+        29,
+        30
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.67,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          19,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.0,
+        "actual_aux_avg_rank": 14.0
+      }
+    },
+    {
+      "period_idx": 64,
+      "period": 26058,
+      "actual_main": [
+        1,
+        4,
+        7,
+        21,
+        29,
+        30
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          13,
+          22,
+          25,
+          31
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          6,
+          7,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 65,
+      "period": 26057,
+      "actual_main": [
+        1,
+        10,
+        22,
+        24,
+        28,
+        30
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          8,
+          13,
+          14,
+          25
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.67,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          13,
+          25,
+          26,
+          29
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 22.83,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 66,
+      "period": 26056,
+      "actual_main": [
+        10,
+        19,
+        21,
+        22,
+        31,
+        33
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          10,
+          13,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.83,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 67,
+      "period": 26055,
+      "actual_main": [
+        4,
+        11,
+        24,
+        25,
+        32,
+        33
+      ],
+      "actual_aux": [
+        13
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          7,
+          10,
+          13,
+          22
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.33,
+        "actual_aux_avg_rank": 12.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          5,
+          13,
+          22,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.17,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 68,
+      "period": 26054,
+      "actual_main": [
+        13,
+        20,
+        25,
+        29,
+        30,
+        33
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          9,
+          10,
+          15,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.67,
+        "actual_aux_avg_rank": 3.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          9,
+          15,
+          22,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.33,
+        "actual_aux_avg_rank": 2.0
+      }
+    },
+    {
+      "period_idx": 69,
+      "period": 26053,
+      "actual_main": [
+        1,
+        2,
+        3,
+        8,
+        13,
+        14
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          5,
+          7,
+          17,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.0,
+        "actual_aux_avg_rank": 5.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          9,
+          14,
+          17,
+          24,
+          26
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 6,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.33,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 70,
+      "period": 26052,
+      "actual_main": [
+        1,
+        3,
+        11,
+        22,
+        26,
+        31
+      ],
+      "actual_aux": [
+        11
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          14,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.0,
+        "actual_aux_avg_rank": 9.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          9,
+          14,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 4,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 71,
+      "period": 26051,
+      "actual_main": [
+        9,
+        14,
+        15,
+        16,
+        29,
+        30
+      ],
+      "actual_aux": [
+        10
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.83,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          9,
+          15,
+          22,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          1
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.83,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 72,
+      "period": 26050,
+      "actual_main": [
+        6,
+        9,
+        25,
+        27,
+        28,
+        30
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          7,
+          13,
+          21,
+          22
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 21.83,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          7,
+          17,
+          18,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 20.33,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 73,
+      "period": 26049,
+      "actual_main": [
+        3,
+        4,
+        14,
+        15,
+        18,
+        20
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          13,
+          22,
+          24,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          13,
+          16,
+          22,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 74,
+      "period": 26048,
+      "actual_main": [
+        9,
+        15,
+        18,
+        24,
+        28,
+        33
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          22,
+          24,
+          26,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.17,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          6,
+          13,
+          22,
+          24,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.67,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 75,
+      "period": 26047,
+      "actual_main": [
+        7,
+        16,
+        21,
+        24,
+        27,
+        30
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          6,
+          13,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 10.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          7,
+          13,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.17,
+        "actual_aux_avg_rank": 9.0
+      }
+    },
+    {
+      "period_idx": 76,
+      "period": 26046,
+      "actual_main": [
+        2,
+        9,
+        10,
+        24,
+        31,
+        33
+      ],
+      "actual_aux": [
+        16
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          13,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 1,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          13,
+          22,
+          25,
+          26
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.83,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 77,
+      "period": 26045,
+      "actual_main": [
+        4,
+        11,
+        15,
+        17,
+        24,
+        30
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          6,
+          11,
+          12,
+          13,
+          25
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 11.67,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          6,
+          11,
+          13,
+          17,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.5,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 78,
+      "period": 26044,
+      "actual_main": [
+        2,
+        14,
+        17,
+        18,
+        22,
+        30
+      ],
+      "actual_aux": [
+        1
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          9,
+          12,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.83,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          9,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 79,
+      "period": 26043,
+      "actual_main": [
+        6,
+        9,
+        14,
+        16,
+        25,
+        32
+      ],
+      "actual_aux": [
+        16
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          6,
+          13,
+          30,
+          32
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 16.5,
+        "actual_aux_avg_rank": 1.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          6,
+          7,
+          13,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.5,
+        "actual_aux_avg_rank": 4.0
+      }
+    },
+    {
+      "period_idx": 80,
+      "period": 26042,
+      "actual_main": [
+        2,
+        7,
+        12,
+        19,
+        24,
+        31
+      ],
+      "actual_aux": [
+        10
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          13,
+          22,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.33,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          13,
+          22,
+          25,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.5,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 81,
+      "period": 26041,
+      "actual_main": [
+        2,
+        8,
+        10,
+        17,
+        19,
+        24
+      ],
+      "actual_aux": [
+        13
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          6,
+          13,
+          23,
+          30
+        ],
+        "predicted_aux": [
+          3
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.17,
+        "actual_aux_avg_rank": 13.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          7,
+          13,
+          22,
+          23
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 13.0
+      }
+    },
+    {
+      "period_idx": 82,
+      "period": 26040,
+      "actual_main": [
+        3,
+        4,
+        14,
+        22,
+        23,
+        33
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          6,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 14.5,
+        "actual_aux_avg_rank": 4.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          3,
+          6,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          5
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.33,
+        "actual_aux_avg_rank": 11.0
+      }
+    },
+    {
+      "period_idx": 83,
+      "period": 26039,
+      "actual_main": [
+        8,
+        17,
+        18,
+        21,
+        25,
+        30
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          6,
+          13,
+          21,
+          22
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.0,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          6,
+          13,
+          22
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 1,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.83,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 84,
+      "period": 26038,
+      "actual_main": [
+        1,
+        2,
+        13,
+        23,
+        25,
+        27
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          6,
+          13,
+          20,
+          22
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          6,
+          13,
+          17
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.33,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 85,
+      "period": 26037,
+      "actual_main": [
+        11,
+        22,
+        27,
+        29,
+        31,
+        33
+      ],
+      "actual_aux": [
+        12
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 1,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 12.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          9,
+          13,
+          19,
+          25
+        ],
+        "predicted_aux": [
+          8
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 0,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 19.67,
+        "actual_aux_avg_rank": 12.0
+      }
+    },
+    {
+      "period_idx": 86,
+      "period": 26036,
+      "actual_main": [
+        6,
+        10,
+        12,
+        15,
+        22,
+        28
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          2,
+          3,
+          12,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.83,
+        "actual_aux_avg_rank": 16.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          6,
+          9,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          2
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.33,
+        "actual_aux_avg_rank": 16.0
+      }
+    },
+    {
+      "period_idx": 87,
+      "period": 26035,
+      "actual_main": [
+        2,
+        6,
+        12,
+        24,
+        25,
+        32
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          13,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          6
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.17,
+        "actual_aux_avg_rank": 8.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          13,
+          22,
+          25
+        ],
+        "predicted_aux": [
+          6
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 15.33,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 88,
+      "period": 26034,
+      "actual_main": [
+        1,
+        3,
+        7,
+        13,
+        22,
+        23
+      ],
+      "actual_aux": [
+        7
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          5,
+          13,
+          22
+        ],
+        "predicted_aux": [
+          6
+        ],
+        "main_hits": 4,
+        "aux_hits": 0,
+        "total_hits": 4,
+        "near_main_1": 5,
+        "near_main_2": 6,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 7.83,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          13,
+          21,
+          22
+        ],
+        "predicted_aux": [
+          6
+        ],
+        "main_hits": 4,
+        "aux_hits": 0,
+        "total_hits": 4,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 7.0,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 89,
+      "period": 26033,
+      "actual_main": [
+        3,
+        6,
+        13,
+        21,
+        28,
+        29
+      ],
+      "actual_aux": [
+        6
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          13,
+          22,
+          24
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.5,
+        "actual_aux_avg_rank": 9.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          9,
+          13,
+          22
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.0,
+        "actual_aux_avg_rank": 8.0
+      }
+    },
+    {
+      "period_idx": 90,
+      "period": 26032,
+      "actual_main": [
+        1,
+        3,
+        11,
+        18,
+        31,
+        33
+      ],
+      "actual_aux": [
+        2
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          6,
+          22,
+          23
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 19.33,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          9,
+          23,
+          24,
+          28
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.33,
+        "actual_aux_avg_rank": 6.0
+      }
+    },
+    {
+      "period_idx": 91,
+      "period": 26031,
+      "actual_main": [
+        3,
+        10,
+        12,
+        13,
+        18,
+        33
+      ],
+      "actual_aux": [
+        8
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          7,
+          13,
+          22,
+          23
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 10.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          5,
+          13,
+          22,
+          23,
+          24
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 3,
+        "near_main_2": 3,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 19.17,
+        "actual_aux_avg_rank": 9.0
+      }
+    },
+    {
+      "period_idx": 92,
+      "period": 26030,
+      "actual_main": [
+        10,
+        11,
+        14,
+        19,
+        22,
+        24
+      ],
+      "actual_aux": [
+        4
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          8,
+          13,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 13.83,
+        "actual_aux_avg_rank": 15.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          5,
+          8,
+          13,
+          17,
+          25
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 2,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 21.33,
+        "actual_aux_avg_rank": 3.0
+      }
+    },
+    {
+      "period_idx": 93,
+      "period": 26029,
+      "actual_main": [
+        6,
+        19,
+        22,
+        23,
+        28,
+        31
+      ],
+      "actual_aux": [
+        5
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          8,
+          13,
+          23,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.67,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          9,
+          13,
+          23
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.0,
+        "actual_aux_avg_rank": 5.0
+      }
+    },
+    {
+      "period_idx": 94,
+      "period": 26028,
+      "actual_main": [
+        2,
+        6,
+        9,
+        17,
+        25,
+        28
+      ],
+      "actual_aux": [
+        15
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          8,
+          13,
+          30
+        ],
+        "predicted_aux": [
+          16
+        ],
+        "main_hits": 0,
+        "aux_hits": 0,
+        "total_hits": 0,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 18.5,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          5,
+          8,
+          13,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 17.67,
+        "actual_aux_avg_rank": 2.0
+      }
+    },
+    {
+      "period_idx": 95,
+      "period": 26027,
+      "actual_main": [
+        2,
+        13,
+        17,
+        18,
+        25,
+        26
+      ],
+      "actual_aux": [
+        13
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          6,
+          9,
+          13,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 2,
+        "near_main_2": 2,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.67,
+        "actual_aux_avg_rank": 12.0
+      },
+      "cap": {
+        "predicted_main": [
+          2,
+          3,
+          9,
+          13,
+          17,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 12.0,
+        "actual_aux_avg_rank": 13.0
+      }
+    },
+    {
+      "period_idx": 96,
+      "period": 26026,
+      "actual_main": [
+        2,
+        9,
+        16,
+        22,
+        25,
+        29
+      ],
+      "actual_aux": [
+        3
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          13,
+          22,
+          23,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 18.67,
+        "actual_aux_avg_rank": 7.0
+      },
+      "cap": {
+        "predicted_main": [
+          3,
+          14,
+          22,
+          23,
+          24,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 16.67,
+        "actual_aux_avg_rank": 7.0
+      }
+    },
+    {
+      "period_idx": 97,
+      "period": 26025,
+      "actual_main": [
+        2,
+        3,
+        15,
+        20,
+        23,
+        24
+      ],
+      "actual_aux": [
+        10
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          22,
+          30,
+          31
+        ],
+        "predicted_aux": [
+          11
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 3,
+        "near_main_2": 5,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 19.5,
+        "actual_aux_avg_rank": 6.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          24,
+          27,
+          30
+        ],
+        "predicted_aux": [
+          10
+        ],
+        "main_hits": 2,
+        "aux_hits": 1,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 1,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 12.5,
+        "actual_aux_avg_rank": 1.0
+      }
+    },
+    {
+      "period_idx": 98,
+      "period": 26024,
+      "actual_main": [
+        1,
+        2,
+        13,
+        21,
+        23,
+        29
+      ],
+      "actual_aux": [
+        14
+      ],
+      "true": {
+        "predicted_main": [
+          1,
+          3,
+          5,
+          7,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 1,
+        "aux_hits": 0,
+        "total_hits": 1,
+        "near_main_1": 5,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 11.0,
+        "actual_aux_avg_rank": 11.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          2,
+          3,
+          5,
+          9,
+          22
+        ],
+        "predicted_aux": [
+          3
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 4,
+        "near_aux_1": 0,
+        "near_aux_2": 0,
+        "actual_main_avg_rank": 14.17,
+        "actual_aux_avg_rank": 13.0
+      }
+    },
+    {
+      "period_idx": 99,
+      "period": 26023,
+      "actual_main": [
+        1,
+        3,
+        8,
+        10,
+        23,
+        29
+      ],
+      "actual_aux": [
+        6
+      ],
+      "true": {
+        "predicted_main": [
+          3,
+          5,
+          8,
+          19,
+          22,
+          30
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 2,
+        "aux_hits": 0,
+        "total_hits": 2,
+        "near_main_1": 4,
+        "near_main_2": 6,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 13.5,
+        "actual_aux_avg_rank": 14.0
+      },
+      "cap": {
+        "predicted_main": [
+          1,
+          3,
+          4,
+          5,
+          8,
+          22
+        ],
+        "predicted_aux": [
+          4
+        ],
+        "main_hits": 3,
+        "aux_hits": 0,
+        "total_hits": 3,
+        "near_main_1": 4,
+        "near_main_2": 5,
+        "near_aux_1": 0,
+        "near_aux_2": 1,
+        "actual_main_avg_rank": 15.33,
+        "actual_aux_avg_rank": 8.0
+      }
+    }
+  ],
+  "elapsed_seconds": 319.8
+}
